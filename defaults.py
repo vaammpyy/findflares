@@ -1,0 +1,1 @@
+data_dir='/home/vampy/acads/projects/Stellar Flares/Data'
