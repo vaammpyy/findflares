@@ -340,20 +340,8 @@ class TESSLC:
             flux=data['flux']
             flux_err=data['flux_err']
             start, stop=FINDflare(flux, flux_err, N1=3, N2=1, N3=3, avg_std=True, std_window=5)
-            print("---")
-            print(start)
-            print(stop)
-            print("---")
             start, stop= self._include_tail(flux, start, stop, sig_lvl=1)
-            print("---")
-            print(start)
-            print(stop)
-            print("---")
             start, stop=self._merge_flares(start, stop, close_th=9)
-            print("---")
-            print(start)
-            print(stop)
-            print("---")
 
             #making a positive flare mask
             flare_mask=np.ones(len(self.segment), dtype=bool)
