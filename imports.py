@@ -12,3 +12,7 @@ import aesara_theano_fallback.tensor as tt
 from celerite2.theano import terms, GaussianProcess
 from aflare import aflare, aflare1
 from FINDflare_dport import FINDflare
+from download import *
+from lc_utils import *
+from detrending_utils import *
+from flares_utils import *
