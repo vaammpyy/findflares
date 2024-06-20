@@ -62,7 +62,6 @@ def FINDflare(flux, error, N1=3, N2=1, N3=3, find_transit=False,
         # take the average of the rolling stddev in the window.
         # better for windows w/ significant starspots being removed
        sig_i = np.nanmedian(pd.Series(flux).rolling(std_window, center=True).std())
-    print(sig_i)
     if debug is True:
         print("DEBUG: sig_i = " + str(sig_i))
 
