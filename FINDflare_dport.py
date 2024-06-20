@@ -6,7 +6,7 @@ import pandas as pd
 #               avg_std=False, std_window=7,
 #               returnbinary=False, debug=False):
 
-def FINDflare(flux, error, N1=3, N2=1, N3=3,
+def FINDflare(flux, error, N1=3, N2=1, N3=3, find_transit=False,
               avg_std=False, std_window=7,
               returnbinary=False, debug=False):
     '''
@@ -33,6 +33,8 @@ def FINDflare(flux, error, N1=3, N2=1, N3=3,
     N3 : int, optional
         Coefficient from original paper (Default is 3)
         The number of consecutive points required to flag as a flare
+    find_transit : bool, optional
+        If True the algorithm will find transit instead of flares.
     avg_std : bool, optional
         Should the "sigma" in this data be computed by the median of
         the rolling().std()? (Default is False)
@@ -60,7 +62,7 @@ def FINDflare(flux, error, N1=3, N2=1, N3=3,
         # take the average of the rolling stddev in the window.
         # better for windows w/ significant starspots being removed
        sig_i = np.nanmedian(pd.Series(flux).rolling(std_window, center=True).std())
-
+    print(sig_i)
     if debug is True:
         print("DEBUG: sig_i = " + str(sig_i))
 
@@ -75,7 +77,10 @@ def FINDflare(flux, error, N1=3, N2=1, N3=3,
         print(sum(cc>N2))
 
     # pass cuts from Eqns 3a,b,c
-    ctmp = np.where((ca > 0) & (cb > N1) & (cc > N2))
+    if find_transit:
+        ctmp = np.where((ca < 0) & (cb > N1) & (cc > N2))
+    else:
+        ctmp = np.where((ca > 0) & (cb > N1) & (cc > N2))
 
     cindx = np.zeros_like(flux)
     cindx[ctmp] = 1

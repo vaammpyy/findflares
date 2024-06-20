@@ -1,6 +1,8 @@
 import numpy as np
 import exoplanet as xo
 import matplotlib.pyplot as plt
+from logger import *
+from gls import *
 
 def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
     """
@@ -14,9 +16,9 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
     obj : TESSLC
         TESSLC object.
     period (days) : float
-        Time period of the stellar rotation.
+        Time period of the stellar rotation. [NOT USED]
     factor : float, optional
-        How much times the <time_period> is the allowed gap, by default 1. Chosen by the memory of the GP cavariance.
+        How much times the <time_period> is the allowed gap, by default 1. Chosen by the memory of the GP cavariance. [NOT USED]
     min_segment_len (hours) : float, optional
         Minimum length of the allowed segment, by default 2.
     
@@ -26,16 +28,18 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
         Segments masks starting from 1 upto total number of segments, 0 everywhere else. All the data points with segment mask greater
         than 0 means that the data point is a part of the segment.
     """
+    logging.info("Segment started")
     t_gap= np.where(np.diff(obj.lc.full['time'])>obj.inst.cadence+obj.inst.cadence_err)[0]
 
-    segment=[]
+    segment=t_gap
 
-    for i in range(len(t_gap)):
-        t_i=obj.lc.full['time'][t_gap[i]]
-        t_i_1=obj.lc.full['time'][t_gap[i]+1]
-        diff_t=t_i_1-t_i
-        if diff_t>factor*period: # Taking the gap to be greater than factor*period for segmentation.
-            segment.append(t_gap[i]) 
+    # for i in range(len(t_gap)):
+    #     t_i=obj.lc.full['time'][t_gap[i]]
+    #     t_i_1=obj.lc.full['time'][t_gap[i]+1]
+    #     # diff_t=t_i_1-t_i
+    #     # if diff_t>factor*period: # Taking the gap to be greater than factor*period for segmentation.
+    #     #     segment.append(t_gap[i]) 
+    #     segment.append(t_gap[i])
 
     segment=np.insert(segment,0,-1)
     segment=np.append(segment,len(obj.lc.full['time'])-1)
@@ -52,11 +56,12 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
     
     obj.lc.segment=segment_mask
 
-def get_period(obj, mask):
+def get_period(obj, mask, ret_pow=False):
     """
     Evaluates dominant period using the GLS periodogram.
 
-    Evaluates the Generalized Lombscargle Periodogram (GLS) for the data and returns the time period of the dominant period.
+    Evaluates the Generalized Lombscargle Periodogram (GLS) for the data
+    and returns the time period of the dominant period.
     Which coresponds to the stellar rotation.
 
     Parameters
@@ -65,18 +70,51 @@ def get_period(obj, mask):
         TESSLC lightcurve object.
     mask : ndarray
         Mask to be applied to the data for evaluating the lomb_scargle periodogram.
-
+    ret_pow : bool, optional
+        If True returns log power of the peak, by default False .
     Returns
     -------
     period : float
         Time period of the dominant peak.
+    power : float, optional.
+        Normalized power of the dominant peak, returned if ret_pow=True.
     """
     data=obj.lc.full
     time=data['time'][mask]
     flux=data['flux'][mask]
     flux_err=data['flux_err'][mask]
-    result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
-    return result['peaks'][0]['period']
+    # result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
+    gls=Gls(((time, flux, flux_err)), fend=10, fbeg=2/(time[-1]-time[0]))
+    period=gls.best['P']
+    power=gls.best['amp']
+    if ret_pow:
+        # return result['peaks'][0]['period'], result['peaks'][0]['log_power']
+        return period, power
+    else:
+        return period
+
+def check_rotation(obj):
+    """
+    Checks stellar rotation.
+
+    Checks stellar rotation using amplitude of the dominant peak,
+    if amplitude is less than 10 then stellar rotation is absent.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    
+    Returns
+    -------
+    bool : True if rotation is found else False.
+    """
+    mask=get_mask(obj)
+    period, power=get_period(obj, mask, ret_pow=True)
+    if power<10:
+        return False
+    else:
+        return True
 
 def get_mask(obj, q_flags=None, segments=None):
     """
@@ -158,7 +196,7 @@ def clean_lightcurve(obj):
 
     obj.lc.segment=  obj.lc.segment[combined_mask]
 
-def plot_lightcurve(obj, mode=None, q_flags=None, segments=None):
+def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False):
     """
     Plots lightcurve.
 
@@ -171,6 +209,7 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None):
         None : Full lightcurve
         'model_overlay' : Full lightcurve with model overlaid.
         'detrended' : Detrended lightcurve.
+        'flare_zoom' : Zoomed in flare.
     q_flags : list, optional
         Quality flags of the data to be plotted, by default None.
     segments : list, optional
@@ -182,9 +221,34 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None):
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
     if mode == 'model_overlay':
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
-        plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], 'r')
+        plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label='model')
     if mode == 'detrended':
         plt.scatter(obj.lc.detrended['time'][mask],obj.lc.detrended['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
+        if show_flares:
+            f_start=obj.lc.flare['start']
+            f_stop=obj.lc.flare['stop']
+            for i in range(len(f_start)):
+                plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=2, color='r')
+
+        if show_transits:
+            t_start=obj.lc.transit['start']
+            t_stop=obj.lc.transit['stop']
+            for i in range(len(t_start)):
+                plt.scatter(obj.lc.detrended['time'][t_start[i]:t_stop[i]+1], obj.lc.detrended['flux'][t_start[i]:t_stop[i]+1], s=2, color='b')
+    if mode == 'flare_zoom':
+        f_start=obj.lc.flare['start']
+        f_stop=obj.lc.flare['stop']
+        for i in range(len(f_start)):
+            fig=plt.figure(figsize=(20,10), facecolor='white')
+            plt.scatter(obj.lc.detrended['time'][f_start[i]-100:f_stop[i]+100], obj.lc.detrended['flux'][f_start[i]-100:f_stop[i]+100], s=1, color='k', label=f"TIC {obj.TIC}")
+            plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=5, color='r', label="Flares")
+            plt.xlabel("Time [mjd - 2,457,000]", fontsize=14)
+            plt.ylabel("Flux [e/s]", fontsize=14)
+            plt.legend(fontsize=14)
+            plt.tick_params(labelsize=14)
+            plt.show()
+        return
+
     plt.xlabel("Time [mjd - 2,457,000]", fontsize=14)
     plt.ylabel("Flux [e/s]", fontsize=14)
     plt.legend(fontsize=14)

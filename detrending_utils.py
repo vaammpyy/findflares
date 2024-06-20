@@ -4,6 +4,7 @@ import aesara_theano_fallback.tensor as tt
 from celerite2.theano import terms, GaussianProcess
 import pymc3_ext as pmx
 from lc_utils import get_period, get_mask
+from scipy.signal import savgol_filter
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """
@@ -78,7 +79,7 @@ def RotationTerm_model(obj, model_mask, eval_mask):
         map_soln = pmx.optimize()
         return map_soln
 
-def GaussianProcess_detrend(obj, segments=None, mask_flare=False):
+def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False):
     """
     Detrends lightcurve data using gaussian process regression.
 
@@ -91,7 +92,11 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False):
     segments : list, optional
         Segments to detrend, by default None. If not parsed then detrends all the segments.
     mask_flare : bool, optional
-        If true then it will mask the flares when training the model, by default False. When true it assumes obj.flares is defined.
+        If true then it will mask the flares when training the model, by default False.
+        When true it assumes obj.lc.flares is defined.
+    mask_transit : bool, optional
+        If true then it will mask the transit when training the model, by default False.
+        When true it assumes obj.lc.transit is defined.
 
     Attributes
     ----------
@@ -120,12 +125,16 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False):
         print(f"Segment: {seg}, started.")
         model_mask=get_mask(obj, q_flags=q_flags, segments=[seg])
 
-        # Masking the flares
-        if mask_flare:
+        # Masking the flares when flares are detected.
+        if mask_flare and len(obj.lc.flare['mask'])>0:
             flare_mask=obj.lc.flare['mask']
             comb_model_mask = flare_mask & model_mask
         else:
             comb_model_mask = model_mask
+
+        if mask_transit:
+            transit_mask=obj.lc.transit['mask']
+            comb_model_mask = transit_mask & comb_model_mask
 
         eval_mask=get_mask(obj, segments=[seg])
         map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask)
@@ -140,3 +149,58 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False):
         print(f"Segment: {seg}, completed.")
     obj.lc.detrended=lc_detrended
     obj.lc.model=model_lc
+
+def Median_detrend(obj, segments=None, window_length=2161):
+    """
+    Median filter detrending.
+
+    Median filter detrending using first order savitzky-golay over a 12hr window.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    segments : list, optional
+        Segments to detrend, by default 'None' i.e detrending over all segments.
+    window_length : int, optional
+        Window length for median filter, by default 2161 (12hr).
+    
+    Attributes
+    ----------
+    obj.lc.detrended : dict
+        Detrended lightcurve data.
+    obj.lc.model : None
+        None as there is no model.
+    
+    Notes
+    -----
+    This module should only be run when no rotation is found in the lightcurve.
+    """
+    lc_detrended={'time':np.array([]),
+                    "flux":np.array([]),
+                    "flux_err":np.array([]),
+                    "quality":np.array([])}
+
+    if segments is None:
+        segments=np.unique(obj.lc.segment)
+    
+    for seg in segments:
+        print(f"Segment: {seg}, started.")
+        model_mask=get_mask(obj, segments=[seg])
+        time=obj.lc.full['time'][model_mask]
+        flux=obj.lc.full['flux'][model_mask]
+        flux_err=obj.lc.full['flux_err'][model_mask]
+        quality=obj.lc.full['quality'][model_mask]
+
+        sav_model = savgol_filter(flux, window_length, 1) - 1
+        flux_detrended = flux - sav_model
+
+        lc_detrended['time']= np.append(lc_detrended['time'],time)
+        lc_detrended['flux']= np.append(lc_detrended['flux'],flux_detrended)
+        lc_detrended['flux_err']= np.append(lc_detrended['flux_err'],flux_err)
+        lc_detrended['quality']= np.append(lc_detrended['quality'],quality)
+
+        print(f"Segment: {seg}, completed.")
+
+    obj.lc.detrended=lc_detrended
+    obj.lc.model=None

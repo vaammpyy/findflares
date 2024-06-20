@@ -233,11 +233,11 @@ class TESSLC:
         """
         clean_lightcurve(self)
     
-    def detrend(self, segments=None, iter_detrend=True):
+    def detrend(self, segments=None, iter_detrend=True, mask_transit=True):
         """
         Detrends lightcurve.
 
-        Detrends lightcurve using using gaussian process regression.
+        Detrends lightcurve using gaussian process regression if rotation is found else uses a median filter of 12hr window.
 
         Parameters
         ----------
@@ -245,13 +245,25 @@ class TESSLC:
             Segments to detrend, by default None and it'll detrend all the segments.
         iter_detrend : bool, optional
             If True iterative detrending will be performed using the flare masked method, by default True.
+        mask_transit : bool, optional
+            If True then in the second iteration of detrending process transits will be masked, by default True.
         """
-        GaussianProcess_detrend(self, segments=segments)
-        if iter_detrend:
-            find_flare(self)
-            GaussianProcess_detrend(self, segments=segments, mask_flare=True)
+        rotation=check_rotation(self)
+        if rotation:
+            GaussianProcess_detrend(self, segments=segments)
+            if iter_detrend:
+                find_flare(self, find_transit=mask_transit)
+                GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit)
+        else:
+            Median_detrend(self)
     
-    def plot(self, mode=None, q_flags=None, segments=None):
+    def findflares(self):
+        """
+        Finds flares in lightcurve.
+        """
+        find_flare(self)
+    
+    def plot(self, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False):
         """
         Plots lightcurve.
 
@@ -262,9 +274,10 @@ class TESSLC:
             None : Full lightcurve
             'model_overlay' : Full lightcurve with model overlaid.
             'detrended' : Detrended lightcurve.
+            'flare_zoom' : Zoomed in flare.
         q_flags : list, optional
             Quality flags of the data to be plotted, by default None.
         segments : list, optional
             Segment of the data to be plotted, by default None.
         """
-        plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments)
+        plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments, show_flares=show_flares, show_transits=show_transits)
