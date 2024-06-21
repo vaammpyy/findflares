@@ -1,7 +1,5 @@
 import numpy as np
-import exoplanet as xo
 import matplotlib.pyplot as plt
-from logger import *
 from gls import *
 
 def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
@@ -28,7 +26,6 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
         Segments masks starting from 1 upto total number of segments, 0 everywhere else. All the data points with segment mask greater
         than 0 means that the data point is a part of the segment.
     """
-    logging.info("Segment started")
     t_gap= np.where(np.diff(obj.lc.full['time'])>obj.inst.cadence+obj.inst.cadence_err)[0]
 
     segment=t_gap
@@ -56,7 +53,7 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
     
     obj.lc.segment=segment_mask
 
-def get_period(obj, mask, ret_pow=False):
+def get_period(obj, mask, ret_pow=False, ret_FAP=False, detrended=False):
     """
     Evaluates dominant period using the GLS periodogram.
 
@@ -71,25 +68,38 @@ def get_period(obj, mask, ret_pow=False):
     mask : ndarray
         Mask to be applied to the data for evaluating the lomb_scargle periodogram.
     ret_pow : bool, optional
-        If True returns log power of the peak, by default False .
+        If True returns log power of the peak, by default False.
+    ret_FAP : bool, optional
+        If True returns the False Alarm Probability of the dominant peak, by default False.
+    detrended : bool, optional
+        If True then lightcurve used is detrended lightcurve, by default False.
+
     Returns
     -------
     period : float
         Time period of the dominant peak.
-    power : float, optional.
+    power : float, optional
         Normalized power of the dominant peak, returned if ret_pow=True.
+    FAP : float, optional
+        False Alarm Probability of the dominant peak, returned if ret_FAP=True.
     """
-    data=obj.lc.full
+    if detrended:
+        data=obj.lc.detrended
+    else:
+        data=obj.lc.full
     time=data['time'][mask]
     flux=data['flux'][mask]
     flux_err=data['flux_err'][mask]
     # result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
-    gls=Gls(((time, flux, flux_err)), fend=10, fbeg=2/(time[-1]-time[0]))
+    gls=Gls(((time, flux, flux_err)), fend=2, fbeg=2/(time[-1]-time[0]))
     period=gls.best['P']
     power=gls.best['amp']
+    fap=gls.FAP()
     if ret_pow:
         # return result['peaks'][0]['period'], result['peaks'][0]['log_power']
         return period, power
+    elif ret_FAP:
+        return period, fap
     else:
         return period
 
@@ -112,6 +122,29 @@ def check_rotation(obj):
     mask=get_mask(obj)
     period, power=get_period(obj, mask, ret_pow=True)
     if power<10:
+        return False
+    else:
+        return True
+
+def check_rotation_2(obj):
+    """
+    Checks stellar rotation.
+
+    Checks stellar rotation using the False Alarm Probability (FAP) of the dominant peak,
+    if FAP is greater than 0.01 then stellar rotation is absent.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    
+    Returns
+    -------
+    bool : True if rotation is found else False.
+    """
+    mask=get_mask(obj)
+    period, fap=get_period(obj, mask, ret_FAP=True, detrended=True)
+    if fap>0.01:
         return False
     else:
         return True
@@ -217,24 +250,29 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     """
     mask=get_mask(obj, q_flags=q_flags, segments=segments)
     fig=plt.figure(figsize=(20,10), facecolor='white')
+
     if mode is None:
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
+
     if mode == 'model_overlay':
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
-        plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label='model')
+        if obj.lc.model != None:
+            plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label='model')
+
     if mode == 'detrended':
         plt.scatter(obj.lc.detrended['time'][mask],obj.lc.detrended['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
-        if show_flares:
+        if show_flares and len(obj.lc.flare['start'])>0:
             f_start=obj.lc.flare['start']
             f_stop=obj.lc.flare['stop']
             for i in range(len(f_start)):
                 plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=2, color='r')
 
-        if show_transits:
+        if show_transits and len(obj.lc.transit['start'])>0:
             t_start=obj.lc.transit['start']
             t_stop=obj.lc.transit['stop']
             for i in range(len(t_start)):
                 plt.scatter(obj.lc.detrended['time'][t_start[i]:t_stop[i]+1], obj.lc.detrended['flux'][t_start[i]:t_stop[i]+1], s=2, color='b')
+
     if mode == 'flare_zoom':
         f_start=obj.lc.flare['start']
         f_stop=obj.lc.flare['stop']

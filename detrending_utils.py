@@ -76,7 +76,7 @@ def RotationTerm_model(obj, model_mask, eval_mask):
         pm.Deterministic("pred", gp.predict(y, t=x_eval))
 
         # Optimize to find the maximum a posterior parameters
-        map_soln = pmx.optimize()
+        map_soln = pmx.optimize(progress=False, verbose=False)
         return map_soln
 
 def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False):
@@ -105,6 +105,7 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
     obj.lc.model : ndarray
         Model used for detrending lightcurve.
     """
+    print("GP DETREND STARTED")
     q_flags=[0]
 
     lc_detrended={'time':np.array([]),
@@ -176,6 +177,7 @@ def Median_detrend(obj, segments=None, window_length=2161):
     -----
     This module should only be run when no rotation is found in the lightcurve.
     """
+    print("MEDIAN DETREND STARTED")
     lc_detrended={'time':np.array([]),
                     "flux":np.array([]),
                     "flux_err":np.array([]),

@@ -112,6 +112,12 @@ class TESSLC:
             Detrended flux array without the flares masked out.
         flare : dict
             Dictionary storing mask (negative), start and stop times for flares.
+        flare_run : bool
+            Flare algorithm run check.
+        transit : dict
+            Dictionary storing mask (negative), start and stop times for transits.
+        transit_run : bool
+            Transit algorithm run check.
         """
         def __init__(self):
             """
@@ -122,6 +128,9 @@ class TESSLC:
             self.model=None
             self.detrended=None
             self.flare=None
+            self.flare_run=False
+            self.transit=None
+            self.transit_run=False
 
     class STAR:
         def __init__(self):
@@ -256,6 +265,34 @@ class TESSLC:
                 GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit)
         else:
             Median_detrend(self)
+
+    def detrend_2(self, segments=None, iter_detrend=True, mask_transit=True):
+        """
+        Detrends lightcurve, alternate method.
+
+        Detrends lightcurve using median filter then checks for rotation in the residual,
+        if FAP<0.01 then rotation is found and GP is run for detrending else just median filter with
+        2161 (12hr) window. 
+
+        Parameters
+        ----------
+        segments : list, optional
+            Segments to detrend, by default None and it'll detrend all the segments.
+        iter_detrend : bool, optional
+            If True iterative detrending will be performed using the flare masked method, by default True.
+        mask_transit : bool, optional
+            If True then in the second iteration of detrending process transits will be masked, by default True.
+        """
+        Median_detrend(self)
+        rotation=check_rotation_2(self)
+        if rotation:
+            print("Rotation found.")
+            GaussianProcess_detrend(self, segments=segments)
+            if iter_detrend:
+                find_flare(self, find_transit=mask_transit)
+                GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit)
+        else:
+            print("Rotation not found.")
     
     def findflares(self):
         """

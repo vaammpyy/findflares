@@ -103,14 +103,16 @@ def _include_tail(data, start_indices, stop_indices, sig_lvl, transit=False):
             # Adjust start index backwards
             for i in range(start - 1, -1, -1):
                 if data[i] < threshold:
-                    new_start = i-100
+                    # new_start = i-100
+                    new_start = int(i*0.995)
                 else:
                     break
             
             # Adjust stop index forwards
             for i in range(stop + 1, len(data)):
                 if data[i] < threshold:
-                    new_stop = i+100
+                    # new_stop = i+100
+                    new_stop = int(i*1.005)
                 else:
                     break
             
@@ -162,9 +164,16 @@ def find_flare(obj, find_transit=False):
     ----------
     obj.lc.flare : dict
         Flare dictionary, {'start', 'stop', 'mask'}, note that the flare mask is negative i.e 0 means flare point.
+    obj.lc.flare_run : bool
+        Flare algorithm run check.
     obj.lc.transit : dict, optional (defined when find_transit=True)
         Transit dictionary, {'start', 'stop', 'mask'}, note that the transit mask is negative i.e 0 means transit point.
+    obj.lc.transit_run : bool
+        Transit algorithm run check.
     """
+    obj.lc.flare_run=True
+    if find_transit:
+        obj.lc.transit_run=True
     data=obj.lc.detrended
     flux=data['flux']
     flux_err=data['flux_err']
@@ -188,6 +197,7 @@ def find_flare(obj, find_transit=False):
                     'stop': stop,
                     'mask': np.array([])}
 
+    t_start, t_stop= [], []
     if find_transit:
         t_start, t_stop=FINDflare(flux, flux_err, N1=3, N2=1, N3=50, avg_std=False, std_window=360, find_transit=True)
         t_start, t_stop= _include_tail(flux, t_start, t_stop, sig_lvl=0.5, transit=True)
@@ -197,6 +207,12 @@ def find_flare(obj, find_transit=False):
         obj.lc.transit={'start': t_start,
                     'stop': t_stop,
                     'mask': transit_mask}
+    elif obj.lc.transit_run:
+        pass
+    else:
+        obj.lc.transit={'start':t_start,
+                    'stop': t_stop,
+                    'mask': np.array([])}
 
 # Adds a single flare in the self.flares.lc
 def add_flare1(self,tpeak,fwhm,ampl,q_flags=None,segments=None):
