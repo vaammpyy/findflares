@@ -229,7 +229,7 @@ def clean_lightcurve(obj):
 
     obj.lc.segment=  obj.lc.segment[combined_mask]
 
-def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False):
+def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False, save_fig=False):
     """
     Plots lightcurve.
 
@@ -247,19 +247,28 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
         Quality flags of the data to be plotted, by default None.
     segments : list, optional
         Segment of the data to be plotted, by default None.
+    show_flares : bool, optional
+        If True flares are plotted in red, by default False.
+    show_transits : bool, optional
+        If True transits are plotted in blue, by default False.
+    save_fig : bool, optional
+        If True figures are saved, by default False.
     """
     mask=get_mask(obj, q_flags=q_flags, segments=segments)
     fig=plt.figure(figsize=(20,10), facecolor='white')
 
     if mode is None:
+        fName=f"{obj.inst.sector}.png"
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
 
     if mode == 'model_overlay':
+        fName=f"{mode}_{obj.inst.sector}.png"
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
         if obj.lc.model != None:
             plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label='model')
 
     if mode == 'detrended':
+        fName=f"{mode}_{obj.inst.sector}.png"
         plt.scatter(obj.lc.detrended['time'][mask],obj.lc.detrended['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
         if show_flares and len(obj.lc.flare['start'])>0:
             f_start=obj.lc.flare['start']
@@ -274,6 +283,7 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
                 plt.scatter(obj.lc.detrended['time'][t_start[i]:t_stop[i]+1], obj.lc.detrended['flux'][t_start[i]:t_stop[i]+1], s=2, color='b')
 
     if mode == 'flare_zoom':
+        save_fig=False
         f_start=obj.lc.flare['start']
         f_stop=obj.lc.flare['stop']
         for i in range(len(f_start)):
@@ -291,4 +301,8 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     plt.ylabel("Flux [e/s]", fontsize=14)
     plt.legend(fontsize=14)
     plt.tick_params(labelsize=14)
-    plt.show()
+    if save_fig:
+        plt.savefig(f"{obj.dir}/{fName}", dpi=600)
+    else:
+        plt.show()
+    plt.close()

@@ -1,6 +1,40 @@
 import lightkurve as lk
 import numpy as np
 
+def search_lightcurve(tic, cadence=20, mission="TESS", author="SPOC", ret_list=False):
+    """
+    Searches for lightcurve for a given tic and returns list tuples (tic, sector).
+
+    Parameters
+    ----------
+    tic : int
+        TIC number of the object.
+    cadence : int, optional
+        Observation cadence, by default 20.
+    mission : str, optional
+        Observation mission, by default "TESS".
+    author : str, optional
+        Author of the observation, by default "SPOC".
+    ret_list : bool, optional
+        If true returns list of (tic, sector), by default False.
+    
+    Returns
+    -------
+    list : list, optional
+        List of tuples of (tic, cadence)
+    """
+    TIC_ID=f"TIC {tic}"
+    search_result=lk.search_lightcurve(TIC_ID, exptime=cadence, mission=mission, author=author)
+    if ret_list:
+        list=[]
+        for result in search_result.mission:
+            sector= int(result.split(" ")[-1])
+            tup=(tic, sector)
+            list.append(tup)
+        return list
+    else:
+        print(search_result)
+
 def get_lightcurve(obj, sector=None, cadence=20, mission="TESS", author='SPOC'):
     """
     Searches or downloads the lightcurve.
@@ -34,6 +68,8 @@ def get_lightcurve(obj, sector=None, cadence=20, mission="TESS", author='SPOC'):
         Radius of the star.
     obj.star.tess_mag : float
         TESS magnitude of the star.
+    obj.int.sector : int
+        Observation sector.
     obj.inst.cadence : float
         Cadence of the observation.
     obj.inst.cadence_err : float
@@ -66,6 +102,7 @@ def get_lightcurve(obj, sector=None, cadence=20, mission="TESS", author='SPOC'):
         obj.star.tess_mag=lc.meta['TESSMAG']
 
         # Assigning the instrument properties
+        obj.inst.sector=sector
         obj.inst.cadence=lc.meta["TIMEDEL"]
         obj.inst.telescope=lc.meta["TELESCOP"]
         obj.inst.instrument=lc.meta["INSTRUME"]

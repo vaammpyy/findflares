@@ -1,7 +1,7 @@
 from imports import *
 from defaults import *
 
-def loadpickle(fName):
+def loadpickle(fName, sector):
     """
     Opens TESSLC pickled object.
 
@@ -11,13 +11,15 @@ def loadpickle(fName):
     ----------
     fName : int
         TIC-ID of the star which is also the name of the folder which has the TESSLC.
+    sector : int
+        Observation sector.
     
     Returns
     -------
     Obj : TESSLC
         TESSLC object holding the lightcurve data and other parameters for flare detection process.
     """
-    fObj=open(f"{data_dir}/{fName}/TESSLC",'rb')
+    fObj=open(f"{data_dir}/{fName}/{sector}.pkl",'rb')
     Obj=pickle.load(fObj)
     fObj.close()
     return Obj
@@ -36,7 +38,7 @@ class TESSLC:
     Attributes
     ----------
     dir : str
-        Path to the directory which holds the TESSLC object.
+        Path to the directory which holds the TESSLC object. Each TIC has one folder with multiple files for each sector.
     TIC : int
         TIC-ID of the star.
     
@@ -73,26 +75,6 @@ class TESSLC:
         self.star=self.STAR()
         self.inst=self.INST()
         self.flares=self.FLARE()
-
-    def pickleObj(self):
-        """
-        Pickles TESSLC object.
-
-        Pickles TESSLC object and stores it in <data_dir/TICID/TESSLC> (defined in defaults).
-
-        Parameters
-        ----------
-        fName : int
-            TIC-ID of the star which is also the name of the folder which has the TESSLC.
-        
-        Returns
-        -------
-        Obj : TESSLC
-            TESSLC object holding the lightcurve data and other parameters for flare detection process.
-        """
-        fObj = open(f"{self.dir}/TESSLC", 'wb')
-        pickle.dump(self, fObj)
-        fObj.close() 
 
     class LC:
         """
@@ -163,6 +145,8 @@ class TESSLC:
 
             Attributes
             ----------
+            sector : int
+                Observation sector.
             cadence : float
                 Cadence of the observation.
             cadence_err : float
@@ -172,6 +156,7 @@ class TESSLC:
             instrument : str
                 Instrument used for the observation.
             """
+            self.sector=None
             self.cadence=None
             self.telescope=None
             self.instrument=None
@@ -283,6 +268,7 @@ class TESSLC:
         mask_transit : bool, optional
             If True then in the second iteration of detrending process transits will be masked, by default True.
         """
+        print("Detrending started.")
         Median_detrend(self)
         rotation=check_rotation_2(self)
         if rotation:
@@ -293,14 +279,17 @@ class TESSLC:
                 GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit)
         else:
             print("Rotation not found.")
+        print("Detrending completed.")
     
     def findflares(self):
         """
         Finds flares in lightcurve.
         """
+        print("Find flares started.")
         find_flare(self)
+        print("Find flares completed.")
     
-    def plot(self, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False):
+    def plot(self, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False, save_fig=False):
         """
         Plots lightcurve.
 
@@ -316,5 +305,21 @@ class TESSLC:
             Quality flags of the data to be plotted, by default None.
         segments : list, optional
             Segment of the data to be plotted, by default None.
+        show_flares : bool, optional
+            If True flares are plotted in red, by default False.
+        show_transits : bool, optional
+            If True transits are plotted in blue, by default False.
+        save_fig : bool, optional
+            If True figures are saved, by default False.
         """
-        plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments, show_flares=show_flares, show_transits=show_transits)
+        plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments, show_flares=show_flares, show_transits=show_transits, save_fig=save_fig)
+
+    def pickleObj(self):
+        """
+        Pickles TESSLC object.
+
+        Pickles TESSLC object and stores it in data_dir/TICID/sector.pkl (data_dir defined in defaults).
+        """
+        fObj = open(f"{self.dir}/{self.inst.sector}.pkl", 'wb')
+        pickle.dump(self, fObj)
+        fObj.close() 
