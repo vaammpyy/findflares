@@ -1,13 +1,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from gls import *
+import pdb
 
 def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
     """
     Segments the lightcurve.
 
-    Segments the lightcurve over the data gaps that are larger than <factor>*time period of the stellar rotation.
+    Segments the lightcurve over the data gaps that are larger than <factor>*time period of the stellar rotation. [NOT USED]
     No segment shorter than <min_segment_len> are taken as the data is not sufficient for a decent GP regression.
+    Segmentation is done if the gap is more than 2hr.
 
     Parameters
     ----------
@@ -26,7 +28,9 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
         Segments masks starting from 1 upto total number of segments, 0 everywhere else. All the data points with segment mask greater
         than 0 means that the data point is a part of the segment.
     """
-    t_gap= np.where(np.diff(obj.lc.full['time'])>obj.inst.cadence+obj.inst.cadence_err)[0]
+    gap_th=2
+    # t_gap= np.where(np.diff(obj.lc.full['time'])>obj.inst.cadence+obj.inst.cadence_err)[0]
+    t_gap= np.where(np.diff(obj.lc.full['time'])*24>gap_th)
 
     segment=t_gap
 
@@ -47,11 +51,13 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
 
     segment_number=1
     for i in range(1,len(segment)):
+        # pdb.set_trace()
         if obj.lc.full['time'][segment[i]]-obj.lc.full['time'][segment[i-1]+1]>min_segment_length:
             segment_mask[segment[i-1]+1:segment[i]+1]=segment_number
             segment_number+=1
     
     obj.lc.segment=segment_mask
+    return segment
 
 def get_period(obj, mask, ret_pow=False, ret_FAP=False, detrended=False):
     """
@@ -91,7 +97,9 @@ def get_period(obj, mask, ret_pow=False, ret_FAP=False, detrended=False):
     flux=data['flux'][mask]
     flux_err=data['flux_err'][mask]
     # result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
-    gls=Gls(((time, flux, flux_err)), fend=2, fbeg=2/(time[-1]-time[0]))
+    # gls=Gls(((time, flux, flux_err)), fend=2, fbeg=2/((time[-1]-time[0])*24))
+    gls=Gls(((time, flux, flux_err)), fend=10, fbeg=1/14)
+    # gls=Gls(((time, flux, flux_err)), Pend=100, Pbeg=0.01/24)
     period=gls.best['P']
     power=gls.best['amp']
     fap=gls.FAP()
@@ -199,7 +207,7 @@ def clean_lightcurve(obj):
     ----------
     obj.lc.full : dict
         Cleaned data points, all values finite.
-    obj.lc.segment : ndarray
+    obj.lc.segment : ndarray [NOT USED]
         Cleaned segment mask, segment mask corresponding to all the finite data points.
     
     Notes
@@ -227,7 +235,7 @@ def clean_lightcurve(obj):
                 'flux_err': flux_err[combined_mask],
                 'quality': quality[combined_mask]} 
 
-    obj.lc.segment=  obj.lc.segment[combined_mask]
+    # obj.lc.segment=  obj.lc.segment[combined_mask]
 
 def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False, save_fig=False):
     """
@@ -258,17 +266,17 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     fig=plt.figure(figsize=(20,10), facecolor='white')
 
     if mode is None:
-        fName=f"{obj.inst.sector}.png"
+        fName=f"{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
 
     if mode == 'model_overlay':
-        fName=f"{mode}_{obj.inst.sector}.png"
+        fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
         if obj.lc.model != None:
             plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label='model')
 
     if mode == 'detrended':
-        fName=f"{mode}_{obj.inst.sector}.png"
+        fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
         plt.scatter(obj.lc.detrended['time'][mask],obj.lc.detrended['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
         if show_flares and len(obj.lc.flare['start'])>0:
             f_start=obj.lc.flare['start']
@@ -302,7 +310,9 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     plt.legend(fontsize=14)
     plt.tick_params(labelsize=14)
     if save_fig:
-        plt.savefig(f"{obj.dir}/{fName}", dpi=600)
+        plt.savefig(f"{obj.dir}/{fName}", dpi=100)
+        print(f"Plot saved.")
+        print(f"PATH::{obj.dir}/{fName}.")
     else:
         plt.show()
     plt.close()

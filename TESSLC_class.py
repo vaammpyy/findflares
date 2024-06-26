@@ -166,7 +166,7 @@ class TESSLC:
         def __ini__(self):
             self.flares=None
 
-    def download_lc(self,sector,cadence=20, mission='TESS', author="SPOC", segment=False, clean=False):
+    def download_lc(self,sector, cadence=None, mission='TESS', author="SPOC", segment=False, clean=False):
         """
         Downloads the TESS lightcurve data for the star.
 
@@ -175,7 +175,7 @@ class TESSLC:
         sector : int
             Observation sector.
         cadence : int, optional        
-            Cadence of the observation, by default 20.
+            Cadence of the observation, by default None.
         mission : str, optional
             Observation mission, by default 'TESS'.
         author : str, optional
@@ -185,11 +185,20 @@ class TESSLC:
         clean : bool, optional
             Set to True to clean the lightcurve, by default False.
         """
-        get_lightcurve(self, sector=sector, cadence=cadence, mission=mission, author=author)
-        if segment:
-            self.segment_lc()
+        print("Downloading started.")
+        if cadence == None:
+            get_lightcurve(self, sector=sector, mission=mission, author=author)
+        else: 
+            get_lightcurve(self, cadence=cadence, sector=sector, mission=mission, author=author)
+        print("Downloading completed.")
         if clean:
+            print("Cleaning started.")
             self.clean_lc()
+            print("Cleaning completed.")
+        if segment:
+            print("Segmentation started.")
+            self.segment_lc()
+            print("Segmentation completed.")
     
     def search_lc(self,cadence=20, mission="TESS", author='SPOC'):
         """
@@ -273,12 +282,18 @@ class TESSLC:
         rotation=check_rotation_2(self)
         if rotation:
             print("Rotation found.")
+            print("iter 1")
             GaussianProcess_detrend(self, segments=segments)
             if iter_detrend:
                 find_flare(self, find_transit=mask_transit)
+                print("iter 2")
                 GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit)
         else:
             print("Rotation not found.")
+            if iter_detrend:
+                find_flare(self, find_transit=mask_transit)
+                print("iter 2")
+                Median_detrend(self, mask_flare=True, mask_transit=True)
         print("Detrending completed.")
     
     def findflares(self):
@@ -320,6 +335,8 @@ class TESSLC:
 
         Pickles TESSLC object and stores it in data_dir/TICID/sector.pkl (data_dir defined in defaults).
         """
-        fObj = open(f"{self.dir}/{self.inst.sector}.pkl", 'wb')
+        fObj = open(f"{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
         pickle.dump(self, fObj)
         fObj.close() 
+        print("Pickled successfully.")
+        print(f"PATH::{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")

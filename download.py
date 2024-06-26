@@ -9,8 +9,8 @@ def search_lightcurve(tic, cadence=20, mission="TESS", author="SPOC", ret_list=F
     ----------
     tic : int
         TIC number of the object.
-    cadence : int, optional
-        Observation cadence, by default 20.
+    cadence : list, optional
+        List of observation cadence, by default 20.
     mission : str, optional
         Observation mission, by default "TESS".
     author : str, optional
@@ -27,15 +27,18 @@ def search_lightcurve(tic, cadence=20, mission="TESS", author="SPOC", ret_list=F
     search_result=lk.search_lightcurve(TIC_ID, exptime=cadence, mission=mission, author=author)
     if ret_list:
         list=[]
+        i=0
         for result in search_result.mission:
             sector= int(result.split(" ")[-1])
-            tup=(tic, sector)
+            cad = search_result[i].exptime.value[0]
+            tup=(tic, sector, int(cad))
             list.append(tup)
+            i+=1
         return list
     else:
         print(search_result)
 
-def get_lightcurve(obj, sector=None, cadence=20, mission="TESS", author='SPOC'):
+def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'):
     """
     Searches or downloads the lightcurve.
 
@@ -82,10 +85,10 @@ def get_lightcurve(obj, sector=None, cadence=20, mission="TESS", author='SPOC'):
     TIC_ID=f"TIC {obj.TIC}"
 
     if sector is None:
-        search_results=lk.search_lightcurve(TIC_ID, exptime=cadence, mission=mission, author=author)
+        search_results=lk.search_lightcurve(TIC_ID, cadence=cadence, mission=mission, author=author)
         print(search_results)
     else:
-        search_lc=lk.search_lightcurve(TIC_ID, sector=sector, exptime=cadence, mission=mission, author=author)
+        search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
         lc=search_lc.download(quality_bitmask=0)
 
         # Making the raw lightcurve file

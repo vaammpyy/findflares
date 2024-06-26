@@ -151,7 +151,7 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
     obj.lc.detrended=lc_detrended
     obj.lc.model=model_lc
 
-def Median_detrend(obj, segments=None, window_length=2161):
+def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_transit=False):
     """
     Median filter detrending.
 
@@ -163,8 +163,12 @@ def Median_detrend(obj, segments=None, window_length=2161):
         TESS lightcurve object.
     segments : list, optional
         Segments to detrend, by default 'None' i.e detrending over all segments.
-    window_length : int, optional
-        Window length for median filter, by default 2161 (12hr).
+    window_length (hrs) : int, optional
+        Window length for median filter, by default 12hr.
+    mask_flares: bool, optional
+        If True flares will be masked out, by default False.
+    mask_transit: bool, optional
+        If True transits will be masked out, by default False.
     
     Attributes
     ----------
@@ -176,6 +180,7 @@ def Median_detrend(obj, segments=None, window_length=2161):
     Notes
     -----
     This module should only be run when no rotation is found in the lightcurve.
+    The median filter window is static making the effective smoothing longer, because of the data gaps while cleaning.
     """
     print("MEDIAN DETREND STARTED")
     lc_detrended={'time':np.array([]),
@@ -189,12 +194,30 @@ def Median_detrend(obj, segments=None, window_length=2161):
     for seg in segments:
         print(f"Segment: {seg}, started.")
         model_mask=get_mask(obj, segments=[seg])
-        time=obj.lc.full['time'][model_mask]
-        flux=obj.lc.full['flux'][model_mask]
-        flux_err=obj.lc.full['flux_err'][model_mask]
-        quality=obj.lc.full['quality'][model_mask]
 
-        sav_model = savgol_filter(flux, window_length, 1) - 1
+        if mask_flare and len(obj.lc.flare['mask'])>0:
+            flare_mask=obj.lc.flare['mask']
+            comb_model_mask = flare_mask & model_mask
+        else:
+            comb_model_mask = model_mask
+
+        if mask_transit:
+            transit_mask=obj.lc.transit['mask']
+            comb_model_mask = transit_mask & comb_model_mask
+
+        time=obj.lc.full['time'][comb_model_mask]
+        flux=obj.lc.full['flux'][comb_model_mask]
+        flux_err=obj.lc.full['flux_err'][comb_model_mask]
+        quality=obj.lc.full['quality'][comb_model_mask]
+        
+        cadence=obj.inst.cadence*3600*24
+        window_length_dp=int(window_length*3600/cadence)
+
+        #making window length odd
+        if window_length_dp%2==0:
+            window_length_dp+=1
+
+        sav_model = savgol_filter(flux, window_length_dp, 1, mode='constant') - 1
         flux_detrended = flux - sav_model
 
         lc_detrended['time']= np.append(lc_detrended['time'],time)
