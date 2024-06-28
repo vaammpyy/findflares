@@ -12,8 +12,9 @@ from imports import *
 def pipeline(tic, sector, cadence):
     print("****************")
     lc=TESSLC(tic)
-    lc.download_lc(sector=sector, cadence=cadence, segment=True, clean=True)
-    lc.detrend_2()
+    # lc.download_lc(sector=sector, cadence=cadence, segment=True, clean=True)
+    lc.download_lc(sector=sector, cadence=cadence, clean=True)
+    lc.detrend_3()
     lc.findflares()
     lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
     lc.plot(mode="model_overlay", save_fig=True)
@@ -27,7 +28,7 @@ with open(target_list_file, "r") as file:
     tics=[int(line.strip(" ")) for line in file]
 
 # if True then processing will be done again for all the targets
-REDO=True
+REDO=False
 
 print("Pipeline Started.")
 for tic in tics:

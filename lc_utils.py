@@ -134,7 +134,7 @@ def check_rotation(obj):
     else:
         return True
 
-def check_rotation_2(obj):
+def check_rotation_2(obj, segments=None):
     """
     Checks stellar rotation.
 
@@ -150,9 +150,9 @@ def check_rotation_2(obj):
     -------
     bool : True if rotation is found else False.
     """
-    mask=get_mask(obj)
+    mask=get_mask(obj, segments=segments)
     period, fap=get_period(obj, mask, ret_FAP=True, detrended=True)
-    if fap>0.01:
+    if fap>0.001:
         return False
     else:
         return True

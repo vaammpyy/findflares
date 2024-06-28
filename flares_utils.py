@@ -180,12 +180,12 @@ def find_flare(obj, find_transit=False):
     start, stop=FINDflare(flux, flux_err, N1=3, N2=1, N3=3, avg_std=True, std_window=5)
     # checking if flares are found
     if len(start)>0: 
-        if obj.inst.cadence == 20:
+        if int(obj.inst.cadence*24*3600) == 20:
             close_th=18
-        if obj.inst.cadence == 120:
+        if int(obj.inst.cadence*24*3600) == 120:
             close_th=3
         start, stop= _include_tail(flux, start, stop, sig_lvl=1)
-        start, stop=_merge_flares(start, stop, close_th=9)
+        start, stop=_merge_flares(start, stop, close_th=close_th)
         #making a negative flare mask
         flare_mask=np.ones(len(obj.lc.segment), dtype=bool)
 

@@ -262,11 +262,11 @@ class TESSLC:
 
     def detrend_2(self, segments=None, iter_detrend=True, mask_transit=True):
         """
-        Detrends lightcurve, alternate method.
+        Detrends lightcurve, 2 iteration of GP.
 
         Detrends lightcurve using median filter then checks for rotation in the residual,
         if FAP<0.01 then rotation is found and GP is run for detrending else just median filter with
-        2161 (12hr) window. 
+        12hr window. 
 
         Parameters
         ----------
@@ -282,18 +282,55 @@ class TESSLC:
         rotation=check_rotation_2(self)
         if rotation:
             print("Rotation found.")
+            print("Segmentation started.")
+            self.segment_lc()
+            print("Segmentation completed.")
             print("iter 1")
-            GaussianProcess_detrend(self, segments=segments)
+            GaussianProcess_detrend(self, segments=segments, mask_outlier=True)
             if iter_detrend:
                 find_flare(self, find_transit=mask_transit)
                 print("iter 2")
-                GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit)
+                GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit, mask_outlier=True)
         else:
             print("Rotation not found.")
-            if iter_detrend:
-                find_flare(self, find_transit=mask_transit)
-                print("iter 2")
-                Median_detrend(self, mask_flare=True, mask_transit=True)
+            # if iter_detrend:
+            #     find_flare(self, find_transit=mask_transit)
+            #     print("iter 2")
+            #     Median_detrend(self, mask_flare=False, mask_transit=False)
+        print("Detrending completed.")
+
+    def detrend_3(self, segments=None, iter_detrend=True, mask_transit=True):
+        """
+        Detrends lightcurve, adaptive iteration of GP.
+
+        Detrends lightcurve using median filter then checks for rotation in the residual,
+        if FAP<0.01 then rotation is found and GP is run for detrending else just median filter with
+        12hr window. 
+
+        Parameters
+        ----------
+        segments : list, optional
+            Segments to detrend, by default None and it'll detrend all the segments.
+        iter_detrend : bool, optional
+            If True iterative detrending will be performed using the flare masked method, by default True.
+        mask_transit : bool, optional
+            If True then in the second iteration of detrending process transits will be masked, by default True.
+        """
+        print("Detrending started.")
+        Median_detrend(self)
+        rotation=check_rotation_2(self)
+        if rotation:
+            print("Rotation found.")
+            print("Segmentation started.")
+            self.segment_lc()
+            print("Segmentation completed.")
+            GaussianProcess_detrend(self, mask_flare=True, mask_transit=mask_transit, mask_outlier=True, iter=True)
+        else:
+            print("Rotation not found.")
+            # if iter_detrend:
+            #     find_flare(self, find_transit=mask_transit)
+            #     print("iter 2")
+            #     Median_detrend(self, mask_flare=False, mask_transit=False)
         print("Detrending completed.")
     
     def findflares(self):
