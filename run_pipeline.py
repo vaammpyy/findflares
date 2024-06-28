@@ -21,8 +21,6 @@ def pipeline(tic, sector, cadence):
     lc.pickleObj()
     print("****************")
 
-target_list_file="/home/vampy/acads/projects/Stellar Flares/Data/targets/_rotating.txt"
-
 # making a list of all tics
 with open(target_list_file, "r") as file:
     tics=[int(line.strip(" ")) for line in file]
