@@ -396,9 +396,10 @@ class Gls:
         else:
             p["e_f"] = np.nan
             p["e_P"] = np.nan
-            print("WARNING: Highest peak is at the edge of the frequency range.\n"\
-                  "No output of frequency error.\n"\
-                  "Increase frequency range to sample the peak maximum.")
+            # print("WARNING: Highest peak is at the edge of the frequency range.\n"\
+            #       "No output of frequency error.\n"\
+            #       "Increase frequency range to sample the peak maximum.")
+            print("WARNING: Highest peak is at the edge of the frequency range.")
 
     def sinmod(self, t=None):
         """

@@ -318,6 +318,23 @@ class TESSLC:
         """
         print("Detrending started.")
         Median_detrend(self)
+
+        #checking for rotation
+        time=self.lc.detrended['time']
+        flux=self.lc.detrended['flux']
+        flux_err=self.lc.detrended['flux_err']
+        mean=np.mean(flux)
+        std=np.std(flux)
+        flux_dev=abs(flux-mean)
+        outlier_mask=flux_dev<3*std
+        gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=4, fbeg=1/14)
+        fap=gls.FAP()
+
+        if fap>0.001:
+            rotation= False
+        else:
+            rotation= True
+
         rotation=check_rotation_2(self)
         if rotation:
             print("Rotation found.")
