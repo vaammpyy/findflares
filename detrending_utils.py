@@ -1,8 +1,8 @@
-import pymc3 as pm
 import numpy as np
-import aesara_theano_fallback.tensor as tt 
-from celerite2.theano import terms, GaussianProcess
-import pymc3_ext as pmx
+import pymc as pm
+import pymc_ext as pmx
+import pytensor.tensor as tt
+from celerite2.pymc import terms, GaussianProcess
 from lc_utils import get_period, get_mask
 from scipy.signal import savgol_filter
 from gls import *
@@ -79,7 +79,7 @@ def RotationTerm_model(obj, model_mask, eval_mask):
         pm.Deterministic("pred", gp.predict(y, t=x_eval))
 
         # Optimize to find the maximum a posterior parameters
-        map_soln = pmx.optimize(progress=False, verbose=False)
+        map_soln = pmx.optimize(progressbar=False)
         return map_soln
 
 def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False):

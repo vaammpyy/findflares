@@ -5,13 +5,15 @@ import pickle
 import os
 import lightkurve as lk
 from astropy.time import Time
-import pymc3 as pm
-import pymc3_ext as pmx
-import aesara_theano_fallback.tensor as tt 
-from celerite2.theano import terms, GaussianProcess
+import pymc as pm
+import pymc_ext as pmx
+import pytensor.tensor as tt 
+from celerite2.pymc import terms, GaussianProcess
 from aflare import aflare, aflare1
 from FINDflare_dport import FINDflare
 from download import *
 from lc_utils import *
 from detrending_utils import *
 from flares_utils import *
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)

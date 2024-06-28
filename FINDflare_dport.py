@@ -99,13 +99,13 @@ def FINDflare(flux, error, N1=3, N2=1, N3=3, find_transit=False,
     # use the value of ConM to determine how many points away stop is
     istop_i = istart_i + (ConM[istart_i] - 1)
 
-    istart_i = np.array(istart_i, dtype=np.int)
-    istop_i = np.array(istop_i, dtype=np.int)
+    istart_i = np.array(istart_i, dtype=np.int64)
+    istop_i = np.array(istop_i, dtype=np.int64)
 
     if returnbinary is False:
         return np.array([istart_i, istop_i])
     else:
-        bin_out = np.zeros_like(flux, dtype=np.int)
+        bin_out = np.zeros_like(flux, dtype=np.int64)
         for k in range(len(istart_i)):
             bin_out[istart_i[k]:istop_i[k]+1] = 1
         return bin_out
