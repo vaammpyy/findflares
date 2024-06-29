@@ -15,5 +15,6 @@ from download import *
 from lc_utils import *
 from detrending_utils import *
 from flares_utils import *
+from requests.exceptions import HTTPError, ConnectionError
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
