@@ -1,5 +1,5 @@
-data_dir='/home/vampy/acads/projects/Stellar Flares/Data'
+data_dir='/home/krohan/projects/def-rclouti/krohan/flares'
 
-target_list_file="/home/vampy/acads/projects/Stellar Flares/Data/targets/_rotating.txt"
+target_list_file="/home/krohan/projects/def-rclouti/krohan/flares/all.txt"
 
 REDO=False
