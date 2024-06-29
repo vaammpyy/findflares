@@ -26,7 +26,7 @@ with open(target_list_file, "r") as file:
     tics=[int(line.strip(" ")) for line in file]
 
 # if True then processing will be done again for all the targets
-REDO=True
+REDO=REDO
 
 print("Pipeline Started.")
 for tic in tics:
