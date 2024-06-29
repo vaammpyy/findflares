@@ -8,6 +8,7 @@ from scipy.signal import savgol_filter
 from gls import *
 from flares_utils import find_flare
 import matplotlib.pyplot as plt
+import pdb
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """
@@ -144,7 +145,10 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 print(f"Iter::{i}")
                 if mask_flare:
                     flare_mask=obj.lc.flare['mask']
-                    comb_model_mask = flare_mask & model_mask
+                    if flare_mask.size==0:
+                        comb_model_mask = model_mask
+                    else:
+                        comb_model_mask = flare_mask & model_mask
                 else:
                     comb_model_mask = model_mask
 
