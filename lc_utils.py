@@ -134,7 +134,7 @@ def check_rotation(obj):
     else:
         return True
 
-def check_rotation_2(obj, segments=None):
+def check_rotation_2(obj, segments=None, ret_p=False):
     """
     Checks stellar rotation.
 
@@ -145,17 +145,29 @@ def check_rotation_2(obj, segments=None):
     ----------
     obj : TESSLC
         TESS lightcurve object.
+    segments : list, optional
+        Segments to check calculate GLS over, by default None which means all segments.
+    ret_p : bool, optional
+        Returns period of rotating if found when True, by default False.
     
     Returns
     -------
     bool : True if rotation is found else False.
+    period : float, optional
+        Returned if rotation is found and ret_p is True.
     """
     mask=get_mask(obj, segments=segments)
     period, fap=get_period(obj, mask, ret_FAP=True, detrended=True)
     if fap>0.001:
-        return False
+        if ret_p:
+            return False, None
+        else:
+            return False
     else:
-        return True
+        if ret_p:
+            return True, period
+        else:
+            return True
 
 def get_mask(obj, q_flags=None, segments=None):
     """
@@ -272,8 +284,9 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     if mode == 'model_overlay':
         fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
         plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
-        if obj.lc.model != None:
-            plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label='model')
+        # if obj.lc.model != None:
+        #     plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label=f'{obj.lc.detrend_scheme}-model')
+        plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label=f'{obj.lc.detrend_scheme}-model')
 
     if mode == 'detrended':
         fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"

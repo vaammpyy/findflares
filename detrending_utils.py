@@ -9,6 +9,7 @@ from gls import *
 from flares_utils import find_flare
 import matplotlib.pyplot as plt
 import pdb
+from misc import MAD
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """
@@ -159,7 +160,8 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 if mask_outlier:
                     flux=obj.lc.full['flux']
                     mean=np.mean(flux)
-                    std=np.std(flux)
+                    # std=np.std(flux)
+                    std=MAD(flux)
                     flux_dev=abs(flux-mean)
                     outlier_mask=flux_dev<3*std
                     comb_model_mask = outlier_mask & comb_model_mask
@@ -234,6 +236,7 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
 
     obj.lc.detrended=lc_detrended
     obj.lc.model=model_lc
+    obj.lc.detrend_scheme="GP"
 
 def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_transit=False):
     """
@@ -340,5 +343,9 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
                     "flux_err":flux_err,
                     "quality":quality}
 
+    model_lc={'time':lc_detrended['time'],
+                "flux":sav_model}
+
     obj.lc.detrended=lc_detrended
-    obj.lc.model=None
+    obj.lc.model=model_lc
+    obj.lc.detrend_scheme = "MedFilt"

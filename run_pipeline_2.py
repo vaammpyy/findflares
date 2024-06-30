@@ -3,21 +3,26 @@ from imports import *
 import argparse
 
 # Step 1: Create the parser
-parser = argparse.ArgumentParser(description='TIC')
+parser = argparse.ArgumentParser(prog='FindFlare Pipeline',
+                                 description='Finds flares in TESS lightcurve')
 
-# Step 2: Add an integer argument
-parser.add_argument('tic', type=int, help='TIC of the target star.')
+parser.add_argument('-t', "--tic",
+                    type=int,
+                    help='TIC of the target star.')
+
+parser.add_argument('-r', "--rerun",
+                    action='store_true',
+                    help='Re-run pipeline for all existing stars.')
 
 # Step 3: Parse the arguments
 args = parser.parse_args()
 
-global redo
-global DATA_dir
-
-redo=REDO
+rerun=args.rerun
 DATA_dir= data_dir
 
-def pipeline(tic):
+print(f"RE-RUN::{rerun}")
+
+def pipeline(tic, data_dir, redo):
     print("Pipeline Started.")
     print("###################")
     print(f"TIC {tic}")
@@ -60,4 +65,4 @@ def pipeline(tic):
     except ConnectionError:
         print("ConnectionError, failed to connect to the server.")
 
-pipeline(args.tic)
+pipeline(args.tic, DATA_dir, rerun)

@@ -100,6 +100,8 @@ class TESSLC:
             Dictionary storing mask (negative), start and stop times for transits.
         transit_run : bool
             Transit algorithm run check.
+        detrend_scheme : str
+            Stores the algorithm used for detrending the lightcurve.
         """
         def __init__(self):
             """
@@ -109,6 +111,7 @@ class TESSLC:
             self.segment=None
             self.model=None
             self.detrended=None
+            self.detrend_scheme=None
             self.flare=None
             self.flare_run=False
             self.transit=None
@@ -131,12 +134,16 @@ class TESSLC:
                 Radius of the star.
             tess_mag : float
                 TESS magnitude of the star.
+            prot : float
+                Period of rotation of the star, as calculated by
+                peak of the GLS, None if star is not rotating.
             """
             self.ra=None
             self.dec=None
             self.teff=None
             self.rad=None
             self.tess_mag=None
+            self.prot=None
         
     class INST:
         def __init__(self):
@@ -318,9 +325,11 @@ class TESSLC:
         """
         print("Detrending started.")
         Median_detrend(self)
-        rotation=check_rotation_2(self)
+        rotation, period=check_rotation_2(self, ret_p=True)
         if rotation:
             print("Rotation found.")
+            self.star.prot=period
+            print(f"Rotation period:{self.star.prot}")
             print("Segmentation started.")
             self.segment_lc()
             print("Segmentation completed.")
