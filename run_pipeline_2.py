@@ -53,6 +53,7 @@ def pipeline(tic, data_dir, redo):
                         continue
                     lc.detrend_3()
                     lc.findflares()
+                    lc.flare_energy()
                     lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
                     lc.plot(mode="model_overlay", save_fig=True)
                     lc.pickleObj()

@@ -8,7 +8,7 @@ A calibrated stellar flare detection pipeline for TESS.
 
 Create a conda environment.
 
-`conda create -n <env-name> python=3.8.10`
+`conda create -n <env-name> python=3.11`
 
 Activate the environment.
 
@@ -20,7 +20,7 @@ Before installing the dependencies upgrade the pip.
 
 Installing the dependencies.
 
-`pip install celerite2 pymc3-ext "exoplanet[pymc3]" lightkurve numpy matplotlib scipy astropy`
+`pip install celerite2 pymc-ext "exoplanet[pymc]" lightkurve numpy matplotlib scipy astropy`
 
 ---
 

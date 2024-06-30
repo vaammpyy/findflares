@@ -2,6 +2,7 @@ import numpy as np
 from FINDflare_dport import FINDflare
 from aflare import aflare, aflare1
 import pdb
+from scipy.integrate import simpson
 
 def _merge_flares(start_indices, stop_indices, close_th):
     """
@@ -217,6 +218,150 @@ def find_flare(obj, find_transit=False):
         obj.lc.transit={'start':t_start,
                     'stop': t_stop,
                     'mask': np.array([])}
+
+def get_flare_param(obj):
+    """
+    Calculates important flare parameters.
+
+    Calculates the following flare parameters and appends it to self.flares dictionary.
+
+    start time of the flare [mjd] : t_start
+    stop time of the flare [mjd] : t_stop
+    start index of the flare [array index] : i_start
+    stop index of the flare [array index] : i_stop
+    amplitude of the flare [e/s] : amplitude
+    duration of the flare [s] : duration
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+
+    Attributes
+    ----------
+    obj.flares : dict
+        {"t_start":, [mjd]
+        "t_stop":, [mjd]
+        "i_start":,
+        "i_stop":,
+        "amplitude":, [e/s]
+        "duration":, [s]}
+    """
+    print("Estimating flare parameters.")
+    time=obj.lc.detrended['time']
+    flux_detrended=obj.lc.detrended['flux']
+    t_start=obj.lc.flare['start']
+    t_stop=obj.lc.flare['stop']
+
+    for i in range(len(t_start)):
+        start, stop=_get_flare_tstart_tstop(time, flux_detrended, t_start[i], t_stop[i])
+        obj.flares['t_start'].append(time[start])
+        obj.flares['t_stop'].append(time[stop])
+        obj.flares["i_start"].append(start)
+        obj.flares["i_stop"].append(stop)
+        amplitude=np.max(flux_detrended[start:stop+1])
+        obj.flares['amplitude'].append(amplitude)
+        dur=(time[stop]-time[start])*24*3600
+        obj.flares['duration'].append(dur)
+
+def get_ED(obj):
+    """
+    Calculates Equivalent duration of the flare.
+
+    Calculates Equivalent duration of the flare as stated in section 3.2, Diamond-Lowe et al. 2021.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    
+    Attributes
+    ----------
+    obj.flares['equi_duration'] : list [seconds]
+        Equivalent duration of all the flares.
+    
+    Notes
+    -----
+    This function assumes that get_flare_param has already been run before.
+    """
+    print("Estimating flare ED.")
+    time=obj.lc.detrended['time']
+    flux_detrended=obj.lc.detrended['flux']
+    flux_model=obj.lc.model['flux']
+
+    y=flux_detrended/flux_model
+
+    flares_dict=obj.flares
+
+    n_flares=len(flares_dict['t_start'])
+
+    for i in range(n_flares):
+        in_flare_time=time[flares_dict['i_start'][i]: flares_dict["i_stop"][i]+1]
+        in_flare_flux_norm=y[flares_dict['i_start'][i]: flares_dict["i_stop"][i]+1]
+        ed=simpson(in_flare_flux_norm, x=in_flare_time)*24*3600
+        obj.flares['equi_duration'].append(ed)
+
+def _get_flare_tstart_tstop(time, flux, t_start, t_stop, rel_diff_th=0.01):
+    """
+    Changes the flare start and stop until addition of new points
+    does not change the integral of luminosity under the flare (relative difference<0.01).
+    Adapted from section 3.2, Diamond-Lowe et al. 2021.
+
+    Parameters
+    ----------
+    time : np.array
+        Time array of the entire lightcurve.
+    flux : np.array
+        Flux array of the entire lightcurve.
+    t_start : int
+        Start index of flare as found by modified FindFlare.
+    t_stop : int
+        Stop index of flare as found by modified FindFlare.
+    rel_diff_th : float, optional
+        Relative difference threshold for the next interation, by default 0.01.
+    
+    Returns
+    -------
+    t_start : int
+        Modified start index of the flare.
+    t_stop : int
+        Modified stop index of the flare.
+    """
+    # evaluating the stop time of the flare.
+    change_stop=True
+    while change_stop:
+        in_flare_time_i=time[t_start:t_stop+1]
+        in_flare_flux_i=flux[t_start:t_stop+1]
+        integral_i=simpson(in_flare_flux_i, x=in_flare_time_i)
+        t_stop_i_1=t_stop+1
+        in_flare_time_i_1=time[t_start:t_stop_i_1+1]
+        in_flare_flux_i_1=flux[t_start:t_stop_i_1+1]
+        integral_i_1=simpson(in_flare_flux_i_1, x=in_flare_time_i_1)
+        rel_diff=(integral_i_1-integral_i)/integral_i
+        if rel_diff>rel_diff_th:
+            change_stop=True
+            t_stop=t_stop_i_1
+        else:
+            change_stop=False
+
+    change_start=True
+    while change_start:
+        in_flare_time_i=time[t_start:t_stop+1]
+        in_flare_flux_i=flux[t_start:t_stop+1]
+        integral_i=simpson(in_flare_flux_i, x=in_flare_time_i)
+        t_start_i_1=t_start-1
+        in_flare_time_i_1=time[t_start_i_1:t_stop+1]
+        in_flare_flux_i_1=flux[t_start_i_1:t_stop+1]
+        integral_i_1=simpson(in_flare_flux_i_1, x=in_flare_time_i_1)
+        rel_diff=(integral_i_1-integral_i)/integral_i
+        if rel_diff>rel_diff_th:
+            change_start=True
+            t_start=t_start_i_1
+        else:
+            change_start=False
+
+    return t_start, t_stop
+
 
 # Adds a single flare in the self.flares.lc
 def add_flare1(self,tpeak,fwhm,ampl,q_flags=None,segments=None):

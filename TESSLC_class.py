@@ -41,6 +41,16 @@ class TESSLC:
         Path to the directory which holds the TESSLC object. Each TIC has one folder with multiple files for each sector.
     TIC : int
         TIC-ID of the star.
+    flares : dict
+        Stores all flare properties.
+        self.flares={"t_start":, [mjd]
+                     "t_stop":, [mjd]
+                     "i_start":, [index]
+                     "i_stop":, [index]
+                     "amplitude":, [e/s]
+                     "duration":, [s]
+                     "equi_duration":, [s]
+                     "energy":}
     
     Class Attributes
     ----------------
@@ -50,8 +60,6 @@ class TESSLC:
         Stores the properties of the star.
     inst : INST
         Stores the instrument properties.
-    flares : FLARES
-        Stores the details of the detected flares.
     """
 
     def __init__(self,fName):
@@ -65,6 +73,14 @@ class TESSLC:
         """
         self.dir=f"{data_dir}/{fName}"
         self.TIC=fName
+        self.flares={"t_start":[],
+                     "t_stop":[],
+                     "i_start":[],
+                     "i_stop":[],
+                     "amplitude":[],
+                     "duration":[],
+                     "equi_duration":[],
+                     "energy":[]}
 
         try:
             os.mkdir(self.dir)
@@ -74,7 +90,6 @@ class TESSLC:
         self.lc=self.LC()
         self.star=self.STAR()
         self.inst=self.INST()
-        self.flares=self.FLARE()
 
     class LC:
         """
@@ -168,10 +183,6 @@ class TESSLC:
             self.telescope=None
             self.instrument=None
             self.cadence_err=None
-
-    class FLARE:
-        def __ini__(self):
-            self.flares=None
 
     def download_lc(self,sector, cadence=None, mission='TESS', author="SPOC", segment=False, clean=False):
         """
@@ -374,6 +385,26 @@ class TESSLC:
             If True figures are saved, by default False.
         """
         plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments, show_flares=show_flares, show_transits=show_transits, save_fig=save_fig)
+
+    def flare_energy(self):
+        """
+        Evaluates flare energies and other relevant parameters.
+
+        Attributes
+        ----------
+        self.flares : dict
+            Stores all flare properties.
+            self.flares={"t_start":, [mjd]
+                        "t_stop":, [mjd]
+                        "i_start":, [index]
+                        "i_stop":, [index]
+                        "amplitude":, [e/s]
+                        "duration":, [s]
+                        "equi_duration":, [s]
+                        "energy":}
+        """
+        get_flare_param(self)
+        get_ED(self)
 
     def pickleObj(self):
         """
