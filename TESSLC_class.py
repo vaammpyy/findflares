@@ -1,7 +1,7 @@
 from imports import *
 from defaults import *
 
-def loadpickle(fName, sector):
+def loadpickle(fName, sector, cadence):
     """
     Opens TESSLC pickled object.
 
@@ -13,13 +13,15 @@ def loadpickle(fName, sector):
         TIC-ID of the star which is also the name of the folder which has the TESSLC.
     sector : int
         Observation sector.
+    cadence : int
+        Cadence of the observation.
     
     Returns
     -------
     Obj : TESSLC
         TESSLC object holding the lightcurve data and other parameters for flare detection process.
     """
-    fObj=open(f"{data_dir}/{fName}/{sector}.pkl",'rb')
+    fObj=open(f"{data_dir}/{fName}/{sector}_{cadence}.pkl",'rb')
     Obj=pickle.load(fObj)
     fObj.close()
     return Obj

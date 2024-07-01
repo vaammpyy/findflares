@@ -299,7 +299,7 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
             f_start=obj.flares['i_start']
             f_stop=obj.flares['i_stop']
             for i in range(len(f_start)):
-                plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=1, color='g', alpha=0.7)
+                plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=1, color='cyan', alpha=0.7)
 
         if show_transits and len(obj.lc.transit['start'])>0:
             t_start=obj.lc.transit['start']
