@@ -5,6 +5,7 @@ import pytensor.tensor as tt
 from celerite2.pymc import terms, GaussianProcess
 from lc_utils import get_period, get_mask
 from scipy.signal import savgol_filter
+from scipy.signal import medfilt
 from gls import *
 from flares_utils import find_flare
 import matplotlib.pyplot as plt
@@ -84,7 +85,7 @@ def RotationTerm_model(obj, model_mask, eval_mask):
         map_soln = pmx.optimize(progressbar=False)
         return map_soln
 
-def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False):
+def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False, mad_th=5):
     """
     Detrends lightcurve data using gaussian process regression.
 
@@ -106,6 +107,8 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
         When True outliers (>3*sig) will be masked out, by default False.
     iter : bool, optional
         When True GP runs iteratively for each segment, by default False.
+    mad_th : float, optional
+        Sets the MAD factor for the outlier masking, by default 4.
 
     Attributes
     ----------
@@ -161,9 +164,9 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                     flux=obj.lc.full['flux']
                     mean=np.mean(flux)
                     # std=np.std(flux)
-                    std=MAD(flux)
+                    mad=MAD(flux)
                     flux_dev=abs(flux-mean)
-                    outlier_mask=flux_dev<3*std
+                    outlier_mask=flux_dev<mad_th*mad
                     comb_model_mask = outlier_mask & comb_model_mask
 
                 eval_mask=get_mask(obj, segments=[seg])
@@ -213,13 +216,14 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
             if mask_transit:
                 transit_mask=obj.lc.transit['mask']
                 comb_model_mask = transit_mask & comb_model_mask
-            
+
             if mask_outlier:
                 flux=obj.lc.full['flux']
                 mean=np.mean(flux)
-                std=np.std(flux)
+                # std=np.std(flux)
+                mad=MAD(flux)
                 flux_dev=abs(flux-mean)
-                outlier_mask=flux_dev<3*std
+                outlier_mask=flux_dev<mad_th*mad
                 comb_model_mask = outlier_mask & comb_model_mask
 
             eval_mask=get_mask(obj, segments=[seg])
@@ -270,58 +274,6 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
     The median filter window is static making the effective smoothing longer, because of the data gaps while cleaning.
     """
     print("MEDIAN DETREND STARTED")
-    # lc_detrended={'time':np.array([]),
-    #                 "flux":np.array([]),
-    #                 "flux_err":np.array([]),
-    #                 "quality":np.array([])}
-
-    # if segments is None:
-    #     segments=np.unique(obj.lc.segment)
-    
-    # for seg in segments:
-    #     print(f"Segment: {seg}, started.")
-    #     model_mask=get_mask(obj, segments=[seg])
-
-    #     if mask_flare and len(obj.lc.flare['mask'])>0:
-    #         flare_mask=obj.lc.flare['mask']
-    #         comb_model_mask = flare_mask & model_mask
-    #     else:
-    #         comb_model_mask = model_mask
-
-    #     if mask_transit:
-    #         transit_mask=obj.lc.transit['mask']
-    #         comb_model_mask = transit_mask & comb_model_mask
-
-    #     time=obj.lc.full['time'][comb_model_mask]
-    #     flux=obj.lc.full['flux'][comb_model_mask]
-    #     flux_err=obj.lc.full['flux_err'][comb_model_mask]
-    #     quality=obj.lc.full['quality'][comb_model_mask]
-        
-    #     cadence=obj.inst.cadence*3600*24
-    #     window_length_dp=int(window_length*3600/cadence)
-
-    #     #making window length odd
-    #     if window_length_dp%2==0:
-    #         window_length_dp+=1
-
-    #     sav_model = savgol_filter(flux, window_length_dp, 1) - 1
-    #     flux_detrended = flux - sav_model
-
-    #     lc_detrended['time']= np.append(lc_detrended['time'],time)
-    #     lc_detrended['flux']= np.append(lc_detrended['flux'],flux_detrended)
-    #     lc_detrended['flux_err']= np.append(lc_detrended['flux_err'],flux_err)
-    #     lc_detrended['quality']= np.append(lc_detrended['quality'],quality)
-
-    #     print(f"Segment: {seg}, completed.")
-    # if mask_flare and len(obj.lc.flare['mask'])>0:
-    #     flare_mask=obj.lc.flare['mask']
-    #     comb_model_mask = flare_mask & model_mask
-    # else:
-    #     comb_model_mask = model_mask
-
-    # if mask_transit:
-    #     transit_mask=obj.lc.transit['mask']
-    #     comb_model_mask = transit_mask & comb_model_mask
 
     time=obj.lc.full['time']
     flux=obj.lc.full['flux']
@@ -335,8 +287,10 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
     if window_length_dp%2==0:
         window_length_dp+=1
 
-    sav_model = savgol_filter(flux, window_length_dp, 1) - 1
-    flux_detrended = flux - sav_model
+    # sav_model = savgol_filter(flux, window_length_dp, 1) - 1
+    medfilt_model = medfilt(flux, window_length_dp)
+    # flux_detrended = flux - sav_model
+    flux_detrended = flux - medfilt_model
 
     lc_detrended={'time':time,
                     "flux":flux_detrended,
@@ -344,7 +298,8 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
                     "quality":quality}
 
     model_lc={'time':lc_detrended['time'],
-                "flux":sav_model}
+                # "flux":sav_model}
+                "flux":medfilt_model}
 
     obj.lc.detrended=lc_detrended
     obj.lc.model=model_lc

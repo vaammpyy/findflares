@@ -188,7 +188,8 @@ def find_flare(obj, find_transit=False):
         start, stop= _include_tail(flux, start, stop, sig_lvl=1)
         start, stop=_merge_flares(start, stop, close_th=close_th)
         #making a negative flare mask
-        flare_mask=np.ones(len(obj.lc.segment), dtype=bool)
+        # flare_mask=np.ones(len(obj.lc.segment), dtype=bool)
+        flare_mask=np.ones(len(obj.lc.full['time']), dtype=bool)
 
     for i in range(len(start)):
         flare_mask[start[i]:stop[i]+1]=0
