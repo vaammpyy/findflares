@@ -7,10 +7,14 @@ from lc_utils import get_period, get_mask
 from scipy.signal import savgol_filter
 from scipy.signal import medfilt
 from gls import *
-from flares_utils import find_flare
+from flares_utils import find_flare, _include_tail, _merge_flares
 import matplotlib.pyplot as plt
+<<<<<<< HEAD
 import pdb
 from misc import MAD
+=======
+from FINDflare_dport import FINDflare
+>>>>>>> 4f3a39ac27d0ddbd933603f279bc19162b8aabb8
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """
@@ -175,13 +179,41 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 time=obj.lc.full['time'][eval_mask]
                 flux_detrended=obj.lc.full['flux'][eval_mask]-map_soln['pred']
                 flux_err=obj.lc.full['flux_err'][eval_mask]
-                gls=Gls(((time, flux_detrended, flux_err)), fend=10, fbeg=1/14)
+
+                # find flares and extending it.
+                start, stop=FINDflare(flux_detrended, flux_err, N1=3, N2=1, N3=3, avg_std=True, std_window=5)
+                if len(start)>0: 
+                    if int(obj.inst.cadence*24*3600) == 20:
+                        close_th=18
+                    if int(obj.inst.cadence*24*3600) == 120:
+                        close_th=3
+                    start, stop= _include_tail(flux, start, stop, sig_lvl=1)
+                    start, stop=_merge_flares(start, stop, close_th=close_th)
+                    #making a negative flare mask
+                    flare_mask=np.ones(len(time), dtype=bool)
+
+                for j in range(len(start)):
+                    flare_mask[start[j]:stop[j]+1]=0
+
+                # making outlier mask
+                mean=np.mean(flux_detrended)
+                std=np.std(flux_detrended)
+                flux_dev=abs(flux_detrended-mean)
+                outlier_mask=flux_dev<3*std
+
+                if mask_flare and len(start)>0:
+                    combined_mask = outlier_mask & flare_mask
+                else:
+                    combined_mask = outlier_mask
+
+                gls=Gls(((time[combined_mask], flux_detrended[combined_mask], flux_err[combined_mask])), fend=4, fbeg=1/14)
                 fap=gls.FAP()
+                period=gls.best['P']
                 mask_flare=True
                 mask_transit=True
                 mask_outlier=True
                 if fap<0.001:
-                    print(f"FAP::{fap}, rotation found.")
+                    print(f"FAP::{fap}, Period::{period}, rotation found.")
                     find_flare(obj, find_transit=mask_transit)
                     if i>3:
                         rotation= False
@@ -194,7 +226,17 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 # fig=plt.figure(figsize=(20,10))
                 # plt.scatter(time, obj.lc.full['flux'][eval_mask], s=0.01, color='k')
                 # plt.plot(time, map_soln['pred'], color='magenta')
-                # plt.savefig(f"./{i}.png")
+                # plt.savefig(f"./{seg}_{i}.png")
+                # plt.close()
+                # fig=plt.figure(figsize=(20,10))
+                # plt.scatter(time, obj.lc.full['flux'][eval_mask]-map_soln['pred'], s=0.01, color='k')
+                # plt.savefig(f"./{seg}_{i}_detrended.png")
+                # plt.close()
+                # fig=plt.figure(figsize=(20,10))
+                # plt.semilogx(1/gls.freq, gls.power)
+                # plt.axhline(gls.powerLevel(0.001))
+                # plt.savefig(f"./{seg}_{i}_gls.png")
+                # plt.close()
                 i+=1
 
             lc_detrended['time']= np.append(lc_detrended['time'],obj.lc.full['time'][eval_mask])

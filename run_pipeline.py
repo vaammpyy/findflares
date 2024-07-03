@@ -13,12 +13,21 @@ def pipeline(tic, sector, cadence):
     lc.pickleObj()
     print("****************")
 
+<<<<<<< HEAD
+=======
+target_list_file="/home/vampy/acads/projects/Stellar Flares/Data/targets/all.txt"
+
+>>>>>>> 4f3a39ac27d0ddbd933603f279bc19162b8aabb8
 # making a list of all tics
 with open(target_list_file, "r") as file:
     tics=[int(line.strip(" ")) for line in file]
 
 # if True then processing will be done again for all the targets
+<<<<<<< HEAD
 REDO=REDO
+=======
+REDO=True
+>>>>>>> 4f3a39ac27d0ddbd933603f279bc19162b8aabb8
 
 print("Pipeline Started.")
 for tic in tics:
