@@ -86,7 +86,7 @@ def RotationTerm_model(obj, model_mask, eval_mask):
         map_soln = pmx.optimize(progressbar=False)
         return map_soln
 
-def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False, mad_th=5):
+def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False, mad_th=6):
     """
     Detrends lightcurve data using gaussian process regression.
 
