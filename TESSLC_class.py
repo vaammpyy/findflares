@@ -349,13 +349,12 @@ class TESSLC:
         outlier_mask=flux_dev<3*std
         gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=4, fbeg=1/14)
         fap=gls.FAP()
+        period=gls.best['P']
 
         if fap>0.001:
             rotation= False
         else:
             rotation= True
-
-        rotation=check_rotation_2(self)
         if rotation:
             print("Rotation found.")
             self.star.prot=period
