@@ -11,6 +11,7 @@ from flares_utils import find_flare, _include_tail, _merge_flares
 import matplotlib.pyplot as plt
 import pdb
 from misc import MAD
+from FINDflare_dport import FINDflare
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """
