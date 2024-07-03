@@ -9,12 +9,8 @@ from scipy.signal import medfilt
 from gls import *
 from flares_utils import find_flare, _include_tail, _merge_flares
 import matplotlib.pyplot as plt
-<<<<<<< HEAD
 import pdb
 from misc import MAD
-=======
-from FINDflare_dport import FINDflare
->>>>>>> 4f3a39ac27d0ddbd933603f279bc19162b8aabb8
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """
