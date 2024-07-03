@@ -98,7 +98,7 @@ def get_period(obj, mask, ret_pow=False, ret_FAP=False, detrended=False):
     flux_err=data['flux_err'][mask]
     # result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
     # gls=Gls(((time, flux, flux_err)), fend=2, fbeg=2/((time[-1]-time[0])*24))
-    gls=Gls(((time, flux, flux_err)), fend=5, fbeg=1/14)
+    gls=Gls(((time, flux, flux_err)), fend=4, fbeg=1/14)
     # gls=Gls(((time, flux, flux_err)), Pend=100, Pbeg=0.01/24)
     period=gls.best['P']
     power=gls.best['amp']
