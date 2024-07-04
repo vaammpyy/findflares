@@ -27,6 +27,24 @@ def MAD(x):
     return mad
 
 def get_dist_gaia(ra, dec):
+    """
+    Gets distance of the star from GAIA.
+
+    Gets distance of the star from GAIA catalogue if the star is found at the given ra and dec.
+
+    Parameters
+    ----------
+    ra : float
+        Right ascension of the star.
+    dec : float
+        Declination of the star.
+    
+    Returns
+    -------
+    dist : float, None
+        Distance in parsecs if found in the catalogue.
+    """
+    print("Fetching distance from GAIA.")
     coord = SkyCoord(ra, dec, unit=(u.deg, u.deg), frame='icrs')
 
     # Perform the crossmatch with Gaia DR3
@@ -47,10 +65,28 @@ def get_dist_gaia(ra, dec):
         return None
     
 def get_dist_tess(tic_id):
+    """
+    Gets distance of the star from TESS.
+
+    Gets distance of the star from TESS catalogue if the star is found at the given TIC-ID.
+
+    Parameters
+    ----------
+    tic_id : int
+        TIC-ID of the star.
+    
+    Returns
+    -------
+    dist : float, None
+        Distance in parsecs.
+    """
+    print("Fetching distance from TESS.")
     # Query the TIC catalog for the star's information
     result = Catalogs.query_object(f'TIC {tic_id}', catalog='TIC')
 
     # Extract the distance information
-    distance_pc = result[0]['d']*u.pc
-
-    return distance_pc
+    if len(result)>0:
+        distance_pc = result[0]['d']*u.pc
+        return distance_pc
+    else:
+        return None

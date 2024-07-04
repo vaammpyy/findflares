@@ -372,11 +372,30 @@ def _get_flare_tstart_tstop(time, flux, t_start, t_stop, rel_diff_th=0.01):
     return t_start, t_stop
 
 def get_flare_energies(obj):
+    """
+    Calculates flare energies
+
+    Calculates flare energies using the eq 1 section 3.2 in Diamond-lowe et al. 2021
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    
+    Attributes
+    ----------
+    obj.flares['energy'] : Energy of the flares
+    """
     TIC=obj.TIC
     ra=obj.star.ra
     dec=obj.star.dec
-    # dist_pc=get_dist_gaia(ra, dec)
-    dist_pc=get_dist_tess(TIC)
+    dist_pc=get_dist_gaia(ra, dec)
+    if dist_pc is None:
+        dist_pc=get_dist_tess(TIC)
+    else:
+        print("Distance not found.")
+        print("Flare energy calculation skipped.")
+        return
     dist_cm=dist_pc.to(u.cm)
     obj.star.dist=dist_pc
     flux_detrended=obj.lc.detrended['flux']
@@ -391,9 +410,6 @@ def get_flare_energies(obj):
         in_flare_flux=flux_detrended[flares_dict['i_start'][i]: flares_dict["i_stop"][i]+1]
         e_count=simpson(in_flare_flux, x=in_flare_time)*24*3600
         lambda_mean=7452.64*u.angstrom
-        # energy_per_electron=const.h.to(u.cgs)*1/lambda_mean.to(u.cm)
-        # tot_electron_energy=energy_per_electron*e_count
-        # energy=4*np.pi*dist_cm**2*tot_electron_energy
 
         h=const.h
         c=const.c
@@ -404,10 +420,10 @@ def get_flare_energies(obj):
 
         # Calculate total electron energy and energy
         tot_electron_energy = energy_per_electron * e_count
+        # calculates the energy, 86.6 cm2 is aperture area.
         energy = 4 * np.pi * dist_cm**2 * tot_electron_energy/86.6
 
-        energy_cgs=energy
-        obj.flares['energy'].append(energy_cgs.value)
+        obj.flares['energy'].append(energy.value)
 
 # Adds a single flare in the self.flares.lc
 def add_flare1(self,tpeak,fwhm,ampl,q_flags=None,segments=None):
