@@ -3,6 +3,9 @@ from FINDflare_dport import FINDflare
 from aflare import aflare, aflare1
 import pdb
 from scipy.integrate import simpson
+import astropy.units as u
+import astropy.constants as const
+from misc import get_dist_gaia, get_dist_tess
 
 def _merge_flares(start_indices, stop_indices, close_th):
     """
@@ -230,7 +233,7 @@ def get_flare_param(obj):
     stop time of the flare [mjd] : t_stop
     start index of the flare [array index] : i_start
     stop index of the flare [array index] : i_stop
-    amplitude of the flare [e/s] : amplitude
+    amplitude of the flare [e/s] : amplitude, calculation is based on eq 3, Hawley et al. 2014.
     duration of the flare [s] : duration
 
     Parameters
@@ -251,6 +254,8 @@ def get_flare_param(obj):
     print("Estimating flare parameters.")
     time=obj.lc.detrended['time']
     flux_detrended=obj.lc.detrended['flux']
+    flux_model=obj.lc.model['flux']
+    flux=obj.lc.full['flux']
     t_start=obj.lc.flare['start']
     t_stop=obj.lc.flare['stop']
 
@@ -260,7 +265,9 @@ def get_flare_param(obj):
         obj.flares['t_stop'].append(time[stop])
         obj.flares["i_start"].append(start)
         obj.flares["i_stop"].append(stop)
-        amplitude=np.max(flux_detrended[start:stop+1])
+        flux_loc_mean=np.mean(flux_model[start:stop+1])
+        flux_peak_index=np.argmax(flux_detrended[start:stop+1])
+        amplitude=(flux[flux_peak_index]-flux_loc_mean)/flux_loc_mean
         obj.flares['amplitude'].append(amplitude)
         dur=(time[stop]-time[start])*24*3600
         obj.flares['duration'].append(dur)
@@ -269,7 +276,8 @@ def get_ED(obj):
     """
     Calculates Equivalent duration of the flare.
 
-    Calculates Equivalent duration of the flare as stated in section 3.2, Diamond-Lowe et al. 2021.
+    Calculates Equivalent duration of the flare as stated in eq 2 section 3, Gershberg - 1972 and
+    eq 3 in section 3 of Hunt-Walker et al. 2012.
 
     Parameters
     ----------
@@ -363,6 +371,43 @@ def _get_flare_tstart_tstop(time, flux, t_start, t_stop, rel_diff_th=0.01):
 
     return t_start, t_stop
 
+def get_flare_energies(obj):
+    TIC=obj.TIC
+    ra=obj.star.ra
+    dec=obj.star.dec
+    # dist_pc=get_dist_gaia(ra, dec)
+    dist_pc=get_dist_tess(TIC)
+    dist_cm=dist_pc.to(u.cm)
+    obj.star.dist=dist_pc
+    flux_detrended=obj.lc.detrended['flux']
+    time=obj.lc.detrended['time']
+
+    flares_dict=obj.flares
+
+    n_flares=len(flares_dict['t_start'])
+
+    for i in range(n_flares):
+        in_flare_time=time[flares_dict['i_start'][i]: flares_dict["i_stop"][i]+1]
+        in_flare_flux=flux_detrended[flares_dict['i_start'][i]: flares_dict["i_stop"][i]+1]
+        e_count=simpson(in_flare_flux, x=in_flare_time)*24*3600
+        lambda_mean=7452.64*u.angstrom
+        # energy_per_electron=const.h.to(u.cgs)*1/lambda_mean.to(u.cm)
+        # tot_electron_energy=energy_per_electron*e_count
+        # energy=4*np.pi*dist_cm**2*tot_electron_energy
+
+        h=const.h
+        c=const.c
+
+        h_cgs = h.to(u.erg * u.s)
+        c_cgs = c.to(u.cm / u.s)
+        energy_per_electron = h_cgs * c_cgs / lambda_mean.to(u.cm)
+
+        # Calculate total electron energy and energy
+        tot_electron_energy = energy_per_electron * e_count
+        energy = 4 * np.pi * dist_cm**2 * tot_electron_energy/86.6
+
+        energy_cgs=energy
+        obj.flares['energy'].append(energy_cgs.value)
 
 # Adds a single flare in the self.flares.lc
 def add_flare1(self,tpeak,fwhm,ampl,q_flags=None,segments=None):

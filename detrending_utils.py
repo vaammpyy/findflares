@@ -4,8 +4,7 @@ import pymc_ext as pmx
 import pytensor.tensor as tt
 from celerite2.pymc import terms, GaussianProcess
 from lc_utils import get_period, get_mask
-from scipy.signal import savgol_filter
-from scipy.signal import medfilt
+from scipy.signal import savgol_filter, medfilt
 from gls import *
 from flares_utils import find_flare, _include_tail, _merge_flares
 import matplotlib.pyplot as plt
@@ -326,10 +325,10 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
     if window_length_dp%2==0:
         window_length_dp+=1
 
-    # sav_model = savgol_filter(flux, window_length_dp, 1) - 1
-    medfilt_model = medfilt(flux, window_length_dp)
-    # flux_detrended = flux - sav_model
-    flux_detrended = flux - medfilt_model
+    sav_model = savgol_filter(flux, window_length_dp, 1) - 1
+    # medfilt_model = medfilt(flux, window_length_dp)
+    flux_detrended = flux - sav_model
+    # flux_detrended = flux - medfilt_model
 
     lc_detrended={'time':time,
                     "flux":flux_detrended,
@@ -337,8 +336,8 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
                     "quality":quality}
 
     model_lc={'time':lc_detrended['time'],
-                # "flux":sav_model}
-                "flux":medfilt_model}
+                "flux":sav_model}
+                # "flux":medfilt_model}
 
     obj.lc.detrended=lc_detrended
     obj.lc.model=model_lc

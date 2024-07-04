@@ -154,6 +154,8 @@ class TESSLC:
             prot : float
                 Period of rotation of the star, as calculated by
                 peak of the GLS, None if star is not rotating.
+            dist : float
+                Distance of the star cross-matched with GAIA DR3.
             """
             self.ra=None
             self.dec=None
@@ -161,6 +163,7 @@ class TESSLC:
             self.rad=None
             self.tess_mag=None
             self.prot=None
+            self.dist=None
         
     class INST:
         def __init__(self):
@@ -419,10 +422,11 @@ class TESSLC:
                         "amplitude":, [e/s]
                         "duration":, [s]
                         "equi_duration":, [s]
-                        "energy":}
+                        "energy": [cgs]}
         """
         get_flare_param(self)
         get_ED(self)
+        get_flare_energies(self)
 
     def pickleObj(self):
         """
