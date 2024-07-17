@@ -16,5 +16,7 @@ from lc_utils import *
 from detrending_utils import *
 from flares_utils import *
 from requests.exceptions import HTTPError, ConnectionError
+from injection_recovery import *
 import warnings
+import copy
 warnings.filterwarnings("ignore", category=FutureWarning)

@@ -26,6 +26,27 @@ def loadpickle(fName, sector, cadence):
     fObj.close()
     return Obj
 
+def loadpickle_path(pkl_path):
+    """
+    Opens TESSLC pickled object.
+
+    Opens TESSLC pickled object stored in <pkl_path> (defined in defaults).
+
+    Parameters
+    ----------
+    pkl_path : str
+        Path of the pickle file.
+    
+    Returns
+    -------
+    Obj : TESSLC
+        TESSLC object holding the lightcurve data and other parameters for flare detection process.
+    """
+    fObj=open(pkl_path,'rb')
+    Obj=pickle.load(fObj)
+    fObj.close()
+    return Obj
+
 class TESSLC:
     """
     Stores the TESS lightcurve.
@@ -46,6 +67,7 @@ class TESSLC:
     flares : dict
         Stores all flare properties.
         self.flares={"t_start":, [mjd]
+                     "t_peak":, [mjd]
                      "t_stop":, [mjd]
                      "i_start":, [index]
                      "i_stop":, [index]
@@ -76,6 +98,7 @@ class TESSLC:
         self.dir=f"{data_dir}/{fName}"
         self.TIC=fName
         self.flares={"t_start":[],
+                     "t_peak":[],
                      "t_stop":[],
                      "i_start":[],
                      "i_stop":[],
@@ -414,7 +437,7 @@ class TESSLC:
         Attributes
         ----------
         self.flares : dict
-            Stores all flare properties.
+            Stores all flare properties. First makes all the entries empty
             self.flares={"t_start":, [mjd]
                         "t_stop":, [mjd]
                         "i_start":, [index]
@@ -424,6 +447,15 @@ class TESSLC:
                         "equi_duration":, [s]
                         "energy": [cgs]}
         """
+        self.flares={"t_start":[],
+                     "t_peak":[],
+                     "t_stop":[],
+                     "i_start":[],
+                     "i_stop":[],
+                     "amplitude":[],
+                     "duration":[],
+                     "equi_duration":[],
+                     "energy":[]}
         get_flare_param(self)
         get_ED(self)
         get_flare_energies(self)
@@ -432,10 +464,160 @@ class TESSLC:
         """
         Pickles TESSLC object.
 
-        Pickles TESSLC object and stores it in data_dir/TICID/sector.pkl (data_dir defined in defaults).
+        Pickles TESSLC object and stores it in data_dir/TICID/sector_cadence.pkl (data_dir defined in defaults).
         """
         fObj = open(f"{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
         pickle.dump(self, fObj)
         fObj.close() 
         print("Pickled successfully.")
         print(f"PATH::{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")
+    
+class InjRec(TESSLC):
+    """
+    Stores Injection recovery objects and method.
+
+    Injection recovery class. This is supposed to be run on
+    lightcurve for which pre processing has already been done.
+    """
+
+    def __init__(self, tesslc):
+        """
+        Initializes the InjRec object.
+
+        Initializes the InjRec object by assigning same attributes
+        from the TESSLC class.
+
+        Parameters
+        ----------
+        tesslc : TESSLC
+            TESS lightcurve object.
+        
+        Attributes
+        ----------
+        dir : str
+            Path to the directory which holds the TESSLC object. Each TIC has one folder with multiple files for each sector.
+        TIC : int
+            TIC-ID of the star.
+        flares : dict
+            Stores all flare properties.
+            self.flares={"t_start":, [mjd]
+                        "t_peak":, [mjd]
+                        "t_stop":, [mjd]
+                        "i_start":, [index]
+                        "i_stop":, [index]
+                        "amplitude":, [e/s]
+                        "duration":, [s]
+                        "equi_duration":, [s]
+                        "energy":}
+        injection : dict
+            Stores all injected flare parameters.
+            self.injection={'t_peak':[],
+                            'i_start': [],
+                            'i_stop': [],
+                            'ampl': [],
+                            'fwhm': [],
+                            'ed':[],
+                            'energy':[]}
+        injrec : array
+            Array of injection recovery dictionaries.
+            [{"injected":{"t_peak":,
+                          "i_start":,
+                          "i_stop":,
+                          "ampl":,
+                          "fwhm":,
+                          "ed":,
+                          "energy":},
+            "recovered":{"t_start":,
+                         "t_stop":,
+                         "i_start":,
+                         "amplitude":,
+                         "duration":,
+                         "equi_duration":,
+                         "energy":},
+            "flag":}]
+        
+        Class Attributes
+        ----------------
+        lc : LC
+            Stores the lightcurve data and other relevant data products for flare detection
+        star : STAR
+            Stores the properties of the star.
+        inst : INST
+            Stores the instrument properties.
+        """
+        super().__init__(tesslc.TIC)
+        self.lc = copy.deepcopy(tesslc.lc)
+        self.star =copy.deepcopy(tesslc.star)
+        self.inst =copy.deepcopy(tesslc.inst)
+        self.flares =copy.deepcopy(tesslc.flares)
+        self.injrec=[]
+    
+    def remove_flares(self):
+        """
+        Removes flare from lightcurve.
+
+        Removes detected flares from the lightcurve and replaces them gaussian noise derived from the data,
+        preparing the lightcurve for injection recovery test. Also, removes the previous assigned model
+        and detrended information.
+
+        Attributes
+        ----------
+        self.lc.full : dict
+            Lightcurve dict storing lightcurve data
+        self.lc.detrended : dict
+            Detrended lightcurve model, assigned None
+        self.lc.detrend_scheme : str
+            Detrending scheme used, assigned None
+        self.lc.flare : dict
+            Flare information dict, assigned None
+        self.lc.flare_run : bool
+            Find flare run check, assigned None
+        self.lc.transit : dict
+            Transit information dict, assigned None
+        self.lc.transit_run : bool
+            Find transit run check, assigned None
+
+        Notes
+        -----
+        self.lc.model not assigned to None as it's used when calculating the ED of injected flares.
+        """
+        print("Flare removal and LC cleaning started.")
+        replace_flares_w_gaussian_noise_and_clean_attr(self)
+        print("Flare removal and LC cleaning completed.")
+    
+    def run_injection_recovery(self, run):
+        """
+        Runs injection recovery pipeline.
+
+        Parameters
+        ----------
+        run : int
+            Run number of the injection recovery test
+
+        Attributes
+        ----------
+        self.injrec : list
+            List of injtion recovery dictionaries.
+        """
+        print("^^^^^^^^^^^^^^")
+        print(f"Inj-Rec run::{run} started.")
+        self.remove_flares()
+        add_flares(self, N=10)
+        self.detrend_3()
+        self.findflares()
+        self.flare_energy()
+        recover_flares(self, run)
+        print(f"Inj-Rec run::{run} completed.")
+        print("^^^^^^^^^^^^^^")
+
+    def pickleObj(self):
+        """
+        Pickles InjRec object.
+
+        Pickles InjRec object and stores it in data_dir/TICID/ir_sector_cadence.pkl (data_dir defined in defaults).
+        """
+        fObj = open(f"{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+        pickle.dump(self, fObj)
+        fObj.close() 
+        print("Pickled successfully.")
+        print(f"PATH::{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")

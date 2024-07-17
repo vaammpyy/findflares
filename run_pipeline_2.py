@@ -14,15 +14,23 @@ parser.add_argument('-r', "--rerun",
                     action='store_true',
                     help='Re-run pipeline for all existing stars.')
 
+parser.add_argument('-i', '--injrec',
+                    type=int,
+                    default=0,
+                    # action='store_true',
+                    help='Number of injection recovery test runs.')
+
 # Step 3: Parse the arguments
 args = parser.parse_args()
 
 rerun=args.rerun
 DATA_dir= data_dir
+injrec=args.injrec
 
 print(f"RE-RUN::{rerun}")
+print(f"Inj-Rec::{injrec}")
 
-def pipeline(tic, data_dir, redo):
+def pipeline(tic, data_dir, redo, injrec):
     print("Pipeline Started.")
     print("###################")
     print(f"TIC {tic}")
@@ -54,10 +62,17 @@ def pipeline(tic, data_dir, redo):
                     lc.detrend_3()
                     lc.findflares()
                     lc.flare_energy()
-                    print(lc.flares)
-                    lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
-                    lc.plot(mode="model_overlay", save_fig=True)
-                    lc.pickleObj()
+                    if injrec:
+                        print("Injection recovery test started.")
+                        irec=InjRec(lc)
+                        for k in range(injrec):
+                            irec.run_injection_recovery(run=k+1)
+                        print("Injection recovery test completed.")
+                        irec.pickleObj()
+                    else:
+                        lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
+                        lc.plot(mode="model_overlay", save_fig=True)
+                        lc.pickleObj()
                     print("****************")
         else:
             print("No data found!")
@@ -67,4 +82,4 @@ def pipeline(tic, data_dir, redo):
     except ConnectionError:
         print("ConnectionError, failed to connect to the server.")
 
-pipeline(args.tic, DATA_dir, rerun)
+pipeline(args.tic, DATA_dir, rerun, injrec)

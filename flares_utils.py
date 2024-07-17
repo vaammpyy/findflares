@@ -6,6 +6,7 @@ from scipy.integrate import simpson
 import astropy.units as u
 import astropy.constants as const
 from misc import get_dist_gaia, get_dist_tess
+from random import sample, uniform
 
 def _merge_flares(start_indices, stop_indices, close_th):
     """
@@ -245,6 +246,7 @@ def get_flare_param(obj):
     ----------
     obj.flares : dict
         {"t_start":, [mjd]
+        "t_peak":, [mjd]
         "t_stop":, [mjd]
         "i_start":,
         "i_stop":,
@@ -265,12 +267,12 @@ def get_flare_param(obj):
         obj.flares['t_stop'].append(time[stop])
         obj.flares["i_start"].append(start)
         obj.flares["i_stop"].append(stop)
-        flux_loc_mean=np.mean(flux_model[start:stop+1])
         flux_peak_index=np.argmax(flux_detrended[start:stop+1])
-        amplitude=(flux[flux_peak_index]-flux_loc_mean)/flux_loc_mean
+        amplitude=flux_detrended[start:stop+1][flux_peak_index]
         obj.flares['amplitude'].append(amplitude)
         dur=(time[stop]-time[start])*24*3600
         obj.flares['duration'].append(dur)
+        obj.flares['t_peak'].append(time[start:stop+1][flux_peak_index])
 
 def get_ED(obj):
     """
@@ -425,13 +427,150 @@ def get_flare_energies(obj):
 
         obj.flares['energy'].append(energy.value)
 
-# Adds a single flare in the self.flares.lc
-def add_flare1(self,tpeak,fwhm,ampl,q_flags=None,segments=None):
-    mask=self.lc.get_mask(q_flags=q_flags, segments=segments)
-    t=self.lc.full['time'][mask]
-    flux=self.lc.full['flux'][mask]
-    flux_err=self.lc.full['flux_err'][mask]
-    quality=self.lc.full['quality'][mask]
-    flare=aflare1(t,tpeak=tpeak, fwhm=fwhm, ampl=ampl)
-    self.flares.lc={"time":t, "flux":flux+flare,
-                    "flux_err":flux_err, "quality":quality}
+def replace_flares_w_gaussian_noise_and_clean_attr(obj):
+    """
+    Replaces flares with gaussian noise and cleans attributes.
+
+    Replaces flares with gaussian noise derived from the data, and removes all model information.
+
+    Parameters
+    ----------
+    obj : InjRec
+        Injection Recovery object
+    
+    Attributes
+    ----------
+    obj.lc.full : dict
+        Lightcurve dictionary storing lightcurve information.
+    obj.lc.detrended : dict
+        Detrended lightcurve model, assigned None
+    obj.lc.detrend_scheme : str
+        Detrending scheme used, assigned None
+    obj.lc.flare : dict
+        Flare information dict, assigned None
+    obj.lc.flare_run : bool
+        Find flare run check, assigned None
+    obj.lc.transit : dict
+        Transit information dict, assigned None
+    obj.lc.transit_run : bool
+        Find transit run check, assigned None
+    """
+    lc_dict=obj.lc.detrended
+
+    flux_mean=np.mean(lc_dict['flux'])
+    flux_std=np.std(lc_dict['flux'])
+
+    flares_dict=obj.flares
+
+    n_flares=len(flares_dict['i_start'])
+    for i in range(n_flares):
+        start=flares_dict['i_start'][i]
+        stop=flares_dict['i_stop'][i]
+
+        n_samples=stop-start+1
+
+        obj.lc.detrended['flux'][start:stop+1]=np.random.normal(flux_mean, flux_std, n_samples)
+
+    obj.lc.full['flux']=obj.lc.model['flux']+obj.lc.detrended['flux']
+    obj.lc.detrended=None
+    obj.lc.detrend_scheme=None
+    obj.lc.flare=None
+    obj.lc.flare_run=False
+    obj.lc.transit=None
+    obj.lc.transit_run=False
+    obj.flares={"t_start":[],
+                    "t_peak":[],
+                    "t_stop":[],
+                    "i_start":[],
+                    "i_stop":[],
+                    "amplitude":[],
+                    "duration":[],
+                    "equi_duration":[],
+                    "energy":[]}
+
+def add_flares(obj, N=10):
+    """
+    Adds flares to the lightcurve.
+
+    Adds N number of flares to the full lightcurve.
+
+    Parameters
+    ----------
+    obj : InjRec
+        Injection recovery objects.
+    N : int, optional
+        Number of flares to be added, by default 10.
+
+    Attributes
+    ----------
+    obj.injection : dict
+        Dictionary of the injected flare parameters.
+    obj.lc.full['flux'] : array
+        Flux array with the flares added on top.
+    """
+    print("Flare addition started.")
+    obj.injection={'t_peak':[],
+                    'i_start': [],
+                    'i_stop': [],
+                    'ampl': [],
+                    'fwhm': [],
+                    'ed':[],
+                    'energy':[]}
+
+    time=obj.lc.full['time']
+    dist_cm=obj.star.dist.to(u.cm)
+    cadence=obj.inst.cadence
+    model_flux=obj.lc.model['flux']
+
+    t_peak=np.array(sample(list(time), k=N))+np.random.uniform(low=-cadence,high=cadence, size=N)
+    net_flares_lc=np.zeros(len(time))
+    for i in range(len(t_peak)):
+        #fwhm is in seconds
+        log10_fwhm=np.random.uniform(low=2.1,high=3.0)
+        #ampl is in counts/s
+        log10_ampl=np.random.uniform(low=1.0,high=4.0)
+
+        fwhm=10**(log10_fwhm)/(24*3600)
+        ampl=10**log10_ampl
+        flares_lc=aflare1(time, t_peak[i], fwhm, ampl)
+        mask=np.where(flares_lc>1)[0]
+
+        net_flares_lc=net_flares_lc+flares_lc
+
+        start=mask[0]
+        stop=mask[-1]
+
+        #ED calculation of the flare
+        y=flares_lc/model_flux
+
+        in_flare_time=time[start: stop+1]
+        in_flare_flux_norm=y[start: stop+1]
+        ed=simpson(in_flare_flux_norm, x=in_flare_time)*24*3600
+        obj.injection['ed'].append(ed)
+
+        #energy calculation of the flare
+        e_count=simpson(flares_lc[start:stop+1], x=time[start:stop+1])*24*3600
+
+        lambda_mean=7452.64*u.angstrom
+
+        h=const.h
+        c=const.c
+
+        h_cgs = h.to(u.erg * u.s)
+        c_cgs = c.to(u.cm / u.s)
+        energy_per_electron = h_cgs * c_cgs / lambda_mean.to(u.cm)
+
+        # Calculate total electron energy and energy
+        tot_electron_energy = energy_per_electron * e_count
+        # calculates the energy, 86.6 cm2 is aperture area.
+        energy = 4 * np.pi * dist_cm**2 * tot_electron_energy/86.6
+        
+        obj.injection['t_peak'].append(t_peak[i])
+        obj.injection['i_start'].append(start)
+        obj.injection['i_stop'].append(stop)
+        obj.injection['ampl'].append(10**log10_ampl)
+        obj.injection['fwhm'].append(10**log10_fwhm)
+        obj.injection['energy'].append(energy.value)
+    
+    obj.lc.full['flux']+=net_flares_lc
+    print("Flare addition completed.")
