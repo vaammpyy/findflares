@@ -89,7 +89,7 @@ def recover_flares(obj, run):
     <flare_event>
         if injected flare is detected : {1,2,3,...}
         if injected flare is not detected : 0
-        if false positive detection : -1
+        if false positive detection : -
     <sub_flare_#>
         if injected flare is detected : {1,2,3,...} [Note: sub_flare_# 1 corresponds to the detected flare whose peak is closest to the injected flare]
         if injected flare is not detected : 0
@@ -112,7 +112,7 @@ def recover_flares(obj, run):
             Flag example,
             1) Injected flare that is being detected: run.flare_event.1
             2) Injected flare that is not being detected: run.0.0
-            2) Injected flare that is being detected as flase positive: run.-1.0
+            2) Injected flare that is being detected as flase positive: run.-.0
     
     Parameters
     ----------
@@ -147,7 +147,7 @@ def recover_flares(obj, run):
         sorted_index=index_array[sorted_order]
         flare_number=1
         if sorted_index.size==0:
-            flag=f"{run}.{-1}.{0}"
+            flag=f"{run}.-.{0}"
             log_injection_recovery(obj,rec_index=i,flag=flag)
         else:
             for inj_index in sorted_index:
