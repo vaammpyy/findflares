@@ -81,8 +81,22 @@ def recover_flares(obj, run):
     If the injected flare lies within the start and stop of the detected flare then it's
     deemed recovered.
 
-    Interesting cases:
+    Recovery flag structure
+    -----------------------
+    flag=<run>.<flare_event>.<sub_flare_#>
 
+    <run> : {1,2,3,...}
+    <flare_event>
+        if injected flare is detected : {1,2,3,...}
+        if injected flare is not detected : 0
+        if false positive detection : -1
+    <sub_flare_#>
+        if injected flare is detected : {1,2,3,...} [Note: sub_flare_# 1 corresponds to the detected flare whose peak is closest to the injected flare]
+        if injected flare is not detected : 0
+        if false positive detection : 0
+
+    Interesting cases
+    -----------------
     Case 1: Overlap detection (Injected flare: 2, Recovered flare: 1)
             If two injected flares are detected as one, then the flare detected peak closest
             to the injected one is tagged recovered, other "sub-flares" are considered not recovered

@@ -1,7 +1,7 @@
 from imports import *
 from defaults import *
 
-def loadpickle(fName, sector, cadence):
+def loadpickle(fName, sector, cadence, injrec=False):
     """
     Opens TESSLC pickled object.
 
@@ -15,13 +15,18 @@ def loadpickle(fName, sector, cadence):
         Observation sector.
     cadence : int
         Cadence of the observation.
+    injrec : bool, optional
+        If True loads the injection recovery pickle, by default False.
     
     Returns
     -------
     Obj : TESSLC
         TESSLC object holding the lightcurve data and other parameters for flare detection process.
     """
-    fObj=open(f"{data_dir}/{fName}/{sector}_{cadence}.pkl",'rb')
+    if injrec:
+        fObj=open(f"{data_dir}/{fName}/ir_{sector}_{cadence}.pkl",'rb')
+    else:
+        fObj=open(f"{data_dir}/{fName}/{sector}_{cadence}.pkl",'rb')
     Obj=pickle.load(fObj)
     fObj.close()
     return Obj
