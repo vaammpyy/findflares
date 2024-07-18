@@ -147,11 +147,11 @@ def recover_flares(obj, run):
         sorted_index=index_array[sorted_order]
         flare_number=1
         if sorted_index.size==0:
-            flag=f"{run}.-.{0}"
+            flag=f"{run:02d}.-.{0}"
             log_injection_recovery(obj,rec_index=i,flag=flag)
         else:
             for inj_index in sorted_index:
-                flag=f"{run}.{i+1}.{flare_number}"
+                flag=f"{run:02d}.{i+1}.{flare_number}"
                 flare_number+=1
                 detected_injections.append(inj_index)
                 log_injection_recovery(obj,rec_index=i, inj_index=inj_index, flag=flag)
@@ -161,6 +161,6 @@ def recover_flares(obj, run):
     for k in range(n_injected_flares):
         if k in detected_injections:
             continue
-        flag=f"{run}.{0}.{0}"
+        flag=f"{run:02d}.{0}.{0}"
         log_injection_recovery(obj,inj_index=k,flag=flag)
     print("Flare recovery completed.")
