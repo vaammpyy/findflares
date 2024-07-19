@@ -471,7 +471,7 @@ def replace_flares_w_gaussian_noise_and_clean_attr(obj):
 
         obj.lc.detrended['flux'][start:stop+1]=np.random.normal(flux_mean, flux_std, n_samples)
 
-    obj.lc.full['flux']=obj.lc.model['flux']+obj.lc.detrended['flux']
+    obj.lc.full['flux']=obj.orig_lc.model['flux']+obj.lc.detrended['flux']
     obj.lc.detrended=None
     obj.lc.detrend_scheme=None
     obj.lc.flare=None
@@ -509,6 +509,7 @@ def add_flares(obj, N=10):
         Flux array with the flares added on top.
     """
     print("Flare addition started.")
+    print(f"# Injected flare::{N}")
     obj.injection={'t_peak':[],
                     'i_start': [],
                     'i_stop': [],

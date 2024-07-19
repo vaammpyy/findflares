@@ -249,7 +249,7 @@ def clean_lightcurve(obj):
 
     # obj.lc.segment=  obj.lc.segment[combined_mask]
 
-def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False, save_fig=False):
+def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False, save_fig=False, injrec=False, injrec_run=None):
     """
     Plots lightcurve.
 
@@ -321,6 +321,9 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
             plt.tick_params(labelsize=14)
             plt.show()
         return
+
+    if injrec:
+        fName=f"ir_{injrec_run:02d}_{fName}"
 
     plt.xlabel("Time [mjd - 2,457,000]", fontsize=14)
     plt.ylabel("Flux [e/s]", fontsize=14)

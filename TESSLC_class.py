@@ -410,7 +410,7 @@ class TESSLC:
         find_flare(self)
         print("Find flares completed.")
     
-    def plot(self, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False, save_fig=False):
+    def plot(self, mode=None, q_flags=None, segments=None, show_flares=False, show_transits=False, save_fig=False, injrec=False, injrec_run=None):
         """
         Plots lightcurve.
 
@@ -433,7 +433,7 @@ class TESSLC:
         save_fig : bool, optional
             If True figures are saved, by default False.
         """
-        plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments, show_flares=show_flares, show_transits=show_transits, save_fig=save_fig)
+        plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments, show_flares=show_flares, show_transits=show_transits, save_fig=save_fig, injrec=injrec, injrec_run=injrec_run)
 
     def flare_energy(self):
         """
@@ -545,6 +545,8 @@ class InjRec(TESSLC):
         ----------------
         lc : LC
             Stores the lightcurve data and other relevant data products for flare detection
+        orig_lc : LC
+            Stores the original lightcurve data (unmodified) and other relevant data products for flare detection
         star : STAR
             Stores the properties of the star.
         inst : INST
@@ -552,6 +554,7 @@ class InjRec(TESSLC):
         """
         super().__init__(tesslc.TIC)
         self.lc = copy.deepcopy(tesslc.lc)
+        self.orig_lc = copy.deepcopy(tesslc.lc)
         self.star =copy.deepcopy(tesslc.star)
         self.inst =copy.deepcopy(tesslc.inst)
         self.flares =copy.deepcopy(tesslc.flares)
@@ -590,7 +593,7 @@ class InjRec(TESSLC):
         replace_flares_w_gaussian_noise_and_clean_attr(self)
         print("Flare removal and LC cleaning completed.")
     
-    def run_injection_recovery(self, run):
+    def run_injection_recovery(self, run, plot=False):
         """
         Runs injection recovery pipeline.
 
@@ -612,6 +615,9 @@ class InjRec(TESSLC):
         self.findflares()
         self.flare_energy()
         recover_flares(self, run)
+        if plot:
+            self.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True, injrec=True, injrec_run=run)
+            self.plot(mode="model_overlay", save_fig=True, injrec=True, injrec_run=run)
         print(f"Inj-Rec run::{run} completed.")
         print("^^^^^^^^^^^^^^")
 

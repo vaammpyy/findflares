@@ -66,8 +66,11 @@ def pipeline(tic, data_dir, redo, injrec):
                         print("Injection recovery test started.")
                         irec=InjRec(lc)
                         for k in range(injrec):
-                            irec.run_injection_recovery(run=k+1)
+                            irec.run_injection_recovery(run=k+1, plot=True)
                         print("Injection recovery test completed.")
+                        plot_ir_results(irec, mode='rec_frac', save_fig=True)
+                        plot_ir_results(irec, mode='erg_comp', save_fig=True)
+                        plot_ir_results(irec, mode='fp', save_fig=True)
                         irec.pickleObj()
                     else:
                         lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
