@@ -522,23 +522,31 @@ def add_flares(obj, N=10):
     cadence=obj.inst.cadence
     model_flux=obj.lc.model['flux']
 
-    t_peak=np.array(sample(list(time), k=N))+np.random.uniform(low=-cadence,high=cadence, size=N)
+    arr_time_peak=np.array(sample(list(time), k=N))
+    t_peak=arr_time_peak+np.random.uniform(low=-cadence,high=cadence, size=N)
     net_flares_lc=np.zeros(len(time))
     for i in range(len(t_peak)):
         #fwhm is in seconds
-        log10_fwhm=np.random.uniform(low=1,high=3.0)
+        log10_fwhm=np.random.uniform(low=2,high=3.5)
         #ampl is in counts/s
         log10_ampl=np.random.uniform(low=1.0,high=4.0)
 
         fwhm=10**(log10_fwhm)/(24*3600)
         ampl=10**log10_ampl
         flares_lc=aflare1(time, t_peak[i], fwhm, ampl)
-        mask=np.where(flares_lc>1)[0]
 
         net_flares_lc=net_flares_lc+flares_lc
 
-        start=mask[0]
-        stop=mask[-1]
+        try:
+            mask=np.where(flares_lc>1)[0]
+            start=mask[0]
+            stop=mask[-1]
+        except:
+            print("Flare too small.")
+            arg=np.where(time == arr_time_peak[i])[0][0]
+            pdb.set_trace()
+            start=arg-1
+            stop=arg+1
 
         #ED calculation of the flare
         y=flares_lc/model_flux
@@ -614,7 +622,8 @@ def add_flare(obj, t_peak=None, fwhm=200, ampl=1000):
     model_flux=obj.lc.model['flux']
 
     if t_peak==None:
-        t_peak=np.array(sample(list(time), k=N))+np.random.uniform(low=-cadence,high=cadence, size=N)
+        time_peak=sample(list(time), k=1)[0]
+        t_peak=time_peak+np.random.uniform(low=-cadence,high=cadence)
 
     net_flares_lc=np.zeros(len(time))
     #fwhm is in seconds
@@ -625,12 +634,19 @@ def add_flare(obj, t_peak=None, fwhm=200, ampl=1000):
     fwhm=10**(log10_fwhm)/(24*3600)
     ampl=10**log10_ampl
     flares_lc=aflare1(time, t_peak, fwhm, ampl)
-    mask=np.where(flares_lc>1)[0]
 
     net_flares_lc=net_flares_lc+flares_lc
 
-    start=mask[0]
-    stop=mask[-1]
+    try:
+        mask=np.where(flares_lc>1)[0]
+        start=mask[0]
+        stop=mask[-1]
+    except:
+        print("Flare too small.")
+        arg=np.where(time == time_peak)[0][0]
+        pdb.set_trace()
+        start=arg-1
+        stop=arg+1
 
     #ED calculation of the flare
     y=flares_lc/model_flux
