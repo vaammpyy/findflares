@@ -85,15 +85,15 @@ def recover_flares(obj, run):
     -----------------------
     flag=<run>.<flare_event>.<sub_flare_#>
 
-    <run> : {1,2,3,...}
+    <run> : {01,02,03,...}
     <flare_event>
-        if injected flare is detected : {1,2,3,...}
-        if injected flare is not detected : 0
-        if false positive detection : -
+        if injected flare is detected : {01,02,03,...}
+        if injected flare is not detected : 00
+        if false positive detection : --
     <sub_flare_#>
-        if injected flare is detected : {1,2,3,...} [Note: sub_flare_# 1 corresponds to the detected flare whose peak is closest to the injected flare]
-        if injected flare is not detected : 0
-        if false positive detection : 0
+        if injected flare is detected : {01,02,03,...} [Note: sub_flare_# 1 corresponds to the detected flare whose peak is closest to the injected flare]
+        if injected flare is not detected : 00
+        if false positive detection : 00
 
     Interesting cases
     -----------------
@@ -102,17 +102,17 @@ def recover_flares(obj, run):
             to the injected one is tagged recovered, other "sub-flares" are considered not recovered
             as the detection was not done individually by definition.
             Flag example,
-            1) Injected flare that is being detected: run.flare_event.1
-            2) Injected flare that is being detected as sub-flare: run.flare_event.2
+            1) Injected flare that is being detected: run.flare_event.01
+            2) Injected flare that is being detected as sub-flare: run.flare_event.02
     Case 2: One detected and other not detected (Injected flare: 2, Recovered flare: 1)
             Flag example,
-            1) Injected flare that is being detected: run.flare_event.1
-            2) Injected flare that is not being detected: run.0.0
+            1) Injected flare that is being detected: run.flare_event.01
+            2) Injected flare that is not being detected: run.00.00
     Case 3: One flare detected, one flase positive (Injected flare: 2, Recovered flare: 1, False positive: 1)
             Flag example,
             1) Injected flare that is being detected: run.flare_event.1
-            2) Injected flare that is not being detected: run.0.0
-            2) Injected flare that is being detected as flase positive: run.-.0
+            2) Injected flare that is not being detected: run.00.00
+            2) Injected flare that is being detected as flase positive: run.--.00
     
     Parameters
     ----------
@@ -147,11 +147,11 @@ def recover_flares(obj, run):
         sorted_index=index_array[sorted_order]
         flare_number=1
         if sorted_index.size==0:
-            flag=f"{run:02d}.-.{0}"
+            flag=f"{run:02d}.--.{0:02d}"
             log_injection_recovery(obj,rec_index=i,flag=flag)
         else:
             for inj_index in sorted_index:
-                flag=f"{run:02d}.{i+1}.{flare_number}"
+                flag=f"{run:02d}.{i+1:02d}.{flare_number:02d}"
                 flare_number+=1
                 detected_injections.append(inj_index)
                 log_injection_recovery(obj,rec_index=i, inj_index=inj_index, flag=flag)
@@ -161,6 +161,6 @@ def recover_flares(obj, run):
     for k in range(n_injected_flares):
         if k in detected_injections:
             continue
-        flag=f"{run:02d}.{0}.{0}"
+        flag=f"{run:02d}.{0:02d}.{0:02d}"
         log_injection_recovery(obj,inj_index=k,flag=flag)
     print("Flare recovery completed.")

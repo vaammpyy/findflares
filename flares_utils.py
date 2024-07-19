@@ -526,7 +526,7 @@ def add_flares(obj, N=10):
     net_flares_lc=np.zeros(len(time))
     for i in range(len(t_peak)):
         #fwhm is in seconds
-        log10_fwhm=np.random.uniform(low=2.1,high=3.0)
+        log10_fwhm=np.random.uniform(low=1,high=3.0)
         #ampl is in counts/s
         log10_ampl=np.random.uniform(low=1.0,high=4.0)
 
@@ -571,6 +571,98 @@ def add_flares(obj, N=10):
         obj.injection['ampl'].append(10**log10_ampl)
         obj.injection['fwhm'].append(10**log10_fwhm)
         obj.injection['energy'].append(energy.value)
+    
+    obj.lc.full['flux']+=net_flares_lc
+    print("Flare addition completed.")
+
+def add_flare(obj, t_peak=None, fwhm=200, ampl=1000):
+    """
+    Adds a flare to the lightcurve.
+
+    Adds a single flare to the full lightcurve.
+
+    Parameters
+    ----------
+    obj : InjRec
+        Injection recovery objects.
+    t_peak : float, optional
+        Time in mjd of the flare peak, by default None which means random value will be chosen.
+    fwhm : float, optional
+        Fwhm of the flare, by default 200s.
+    ampl : float, optional
+        Amplitude of the injected flare, by default 1000 ct/s.
+
+    Attributes
+    ----------
+    obj.injection : dict
+        Dictionary of the injected flare parameters.
+    obj.lc.full['flux'] : array
+        Flux array with the flares added on top.
+    """
+    print("Flare addition started.")
+    obj.injection={'t_peak':[],
+                    'i_start': [],
+                    'i_stop': [],
+                    'ampl': [],
+                    'fwhm': [],
+                    'ed':[],
+                    'energy':[]}
+
+    time=obj.lc.full['time']
+    dist_cm=obj.star.dist.to(u.cm)
+    cadence=obj.inst.cadence
+    model_flux=obj.lc.model['flux']
+
+    if t_peak==None:
+        t_peak=np.array(sample(list(time), k=N))+np.random.uniform(low=-cadence,high=cadence, size=N)
+
+    net_flares_lc=np.zeros(len(time))
+    #fwhm is in seconds
+    log10_fwhm=np.log10(fwhm)
+    #ampl is in counts/s
+    log10_ampl=np.log10(ampl)
+
+    fwhm=10**(log10_fwhm)/(24*3600)
+    ampl=10**log10_ampl
+    flares_lc=aflare1(time, t_peak, fwhm, ampl)
+    mask=np.where(flares_lc>1)[0]
+
+    net_flares_lc=net_flares_lc+flares_lc
+
+    start=mask[0]
+    stop=mask[-1]
+
+    #ED calculation of the flare
+    y=flares_lc/model_flux
+
+    in_flare_time=time[start: stop+1]
+    in_flare_flux_norm=y[start: stop+1]
+    ed=simpson(in_flare_flux_norm, x=in_flare_time)*24*3600
+    obj.injection['ed'].append(ed)
+
+    #energy calculation of the flare
+    e_count=simpson(flares_lc[start:stop+1], x=time[start:stop+1])*24*3600
+
+    lambda_mean=7452.64*u.angstrom
+
+    h=const.h
+    c=const.c
+
+    h_cgs = h.to(u.erg * u.s)
+    c_cgs = c.to(u.cm / u.s)
+    energy_per_electron = h_cgs * c_cgs / lambda_mean.to(u.cm)
+
+    # Calculate total electron energy and energy
+    tot_electron_energy = energy_per_electron * e_count
+    # calculates the energy, 86.6 cm2 is aperture area.
+    energy = 4 * np.pi * dist_cm**2 * tot_electron_energy/86.6
+    
+    obj.injection['t_peak'].append(t_peak)
+    obj.injection['i_start'].append(start)
+    obj.injection['i_stop'].append(stop)
+    obj.injection['ampl'].append(10**log10_ampl)
+    obj.injection['fwhm'].append(10**log10_fwhm)
+    obj.injection['energy'].append(energy.value)
     
     obj.lc.full['flux']+=net_flares_lc
     print("Flare addition completed.")

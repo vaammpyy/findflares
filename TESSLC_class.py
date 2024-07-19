@@ -607,7 +607,7 @@ class InjRec(TESSLC):
         print("^^^^^^^^^^^^^^")
         print(f"Inj-Rec run::{run} started.")
         self.remove_flares()
-        add_flares(self, N=10)
+        add_flares(self, N=20)
         self.detrend_3()
         self.findflares()
         self.flare_energy()
