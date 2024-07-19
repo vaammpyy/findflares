@@ -66,7 +66,7 @@ def pipeline(tic, data_dir, redo, injrec):
                         print("Injection recovery test started.")
                         irec=InjRec(lc)
                         for k in range(injrec):
-                            irec.run_injection_recovery(run=k+1, plot=True)
+                            irec.run_injection_recovery(run=k+1, plot=False)
                         print("Injection recovery test completed.")
                         plot_ir_results(irec, mode='rec_frac', save_fig=True)
                         plot_ir_results(irec, mode='erg_comp', save_fig=True)
