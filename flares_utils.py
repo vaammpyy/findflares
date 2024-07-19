@@ -545,7 +545,6 @@ def add_flares(obj, N=10):
         except:
             print("Flare too small.")
             arg=np.where(time == arr_time_peak[i])[0][0]
-            pdb.set_trace()
             start=arg-1
             stop=arg+1
 
