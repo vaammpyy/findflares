@@ -527,7 +527,7 @@ def add_flares(obj, N=10):
     net_flares_lc=np.zeros(len(time))
     for i in range(len(t_peak)):
         #fwhm is in seconds
-        log10_fwhm=np.random.uniform(low=2,high=3.5)
+        log10_fwhm=np.random.uniform(low=1.0,high=3.5)
         #ampl is in counts/s
         log10_ampl=np.random.uniform(low=1.0,high=4.0)
 
