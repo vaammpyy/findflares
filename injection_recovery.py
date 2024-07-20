@@ -275,6 +275,29 @@ def plot_ir_results(obj, mode=None, save_fig=False):
               plt.xlabel("log10(Energy) (ergs)", fontsize=14)
               plt.ylabel("Fractional False Positive", fontsize=14)
 
+       if mode=='rec_frac_erg':
+              fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+              mask_rec=get_ir_mask(flags=flags, mode=['rec'])
+              mask_inj=get_ir_mask(flags=flags, mode=['inj'])
+
+              injected=np.array(injrec)[mask_inj]
+              recovered=np.array(injrec)[mask_rec]
+
+              injected_energy=np.log10(np.array([injected[i]["injected"]['energy'] for i in range(len(injected))]))
+              recovered_energy=np.log10(np.array([recovered[i]["injected"]['energy'] for i in range(len(recovered))]))
+
+              bin_edges=np.linspace(28,34,20)
+
+              injected_hist=np.histogram(injected_energy, bins=bin_edges)
+              recovered_hist=np.histogram(recovered_energy, bins=bin_edges)
+
+              fp_frac=recovered_hist[0]/injected_hist[0]
+
+              fig=plt.figure(figsize=(6,6))
+              plt.bar(bin_edges[:-1], fp_frac, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
+              plt.xlabel("log10(Energy) (ergs)", fontsize=14)
+              plt.ylabel("Fractional Detection", fontsize=14)
+
        if save_fig:
               plt.savefig(f"{obj.dir}/{fName}", dpi=100)
               print(f"Plot saved.")
