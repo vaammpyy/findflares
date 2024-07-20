@@ -220,6 +220,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
                      extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='coolwarm')
               plt.xlabel("log10(FWHM)", fontsize=14)
               plt.ylabel("log10(Ampl)", fontsize=14)
+              plt.title("Recovery Fraction", fontsize=16)
               plt.colorbar()
 
        if mode=='erg_comp':
@@ -253,16 +254,26 @@ def plot_ir_results(obj, mode=None, save_fig=False):
        
        if mode=='fp':
               fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+              mask_rec=get_ir_mask(flags=flags, mode=['fp', 'rec'])
               mask_fp=get_ir_mask(flags=flags, mode=['fp'])
 
               false_positives=np.array(injrec)[mask_fp]
+              recovered=np.array(injrec)[mask_rec]
 
               flase_positives_energy=np.log10(np.array([false_positives[i]["recovered"]['energy'] for i in range(len(false_positives))]))
+              recovered_energy=np.log10(np.array([recovered[i]["recovered"]['energy'] for i in range(len(recovered))]))
+
+              bin_edges=np.linspace(28,34,12)
+
+              fp_hist=np.histogram(flase_positives_energy, bins=bin_edges)
+              recovered_hist=np.histogram(recovered_energy, bins=bin_edges)
+
+              fp_frac=fp_hist[0]/recovered_hist[0]
 
               fig=plt.figure(figsize=(6,6))
-              plt.hist(flase_positives_energy)
+              plt.bar(bin_edges[:-1], fp_frac, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
               plt.xlabel("log10(Energy) (ergs)", fontsize=14)
-              plt.ylabel("# events", fontsize=14)
+              plt.ylabel("Fractional False Positive", fontsize=14)
 
        if save_fig:
               plt.savefig(f"{obj.dir}/{fName}", dpi=100)
