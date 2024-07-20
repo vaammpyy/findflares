@@ -364,7 +364,8 @@ def _get_flare_tstart_tstop(time, flux, t_start, t_stop, rel_diff_th=0.01):
         in_flare_time_i_1=time[t_start_i_1:t_stop+1]
         in_flare_flux_i_1=flux[t_start_i_1:t_stop+1]
         if t_start_i_1<0:
-            print(t_start_i_1)
+            t_start=0
+            break
         integral_i_1=simpson(in_flare_flux_i_1, x=in_flare_time_i_1)
         rel_diff=(integral_i_1-integral_i)/integral_i
         if rel_diff>rel_diff_th:
