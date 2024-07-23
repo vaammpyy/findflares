@@ -182,7 +182,7 @@ def find_flare(obj, find_transit=False):
     data=obj.lc.detrended
     flux=data['flux']
     flux_err=data['flux_err']
-    start, stop=FINDflare(flux, flux_err, N1=2, N2=1, N3=3, avg_std=True, std_window=5)
+    start, stop=FINDflare(flux, flux_err, N1=3, N2=1, N3=2, avg_std=True, std_window=5)
     # checking if flares are found
     if len(start)>0: 
         if int(obj.inst.cadence*24*3600) == 20:
