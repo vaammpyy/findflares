@@ -246,7 +246,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
 
             fig=plt.figure(figsize=(6,6))
             plt.imshow(rec_frac.T,origin='lower', aspect='equal',
-                    extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='coolwarm')
+                    extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
             plt.xlabel("log10(FWHM)", fontsize=14)
             plt.ylabel("log10(Ampl)", fontsize=14)
             plt.title("Recovery Fraction", fontsize=16)
@@ -287,7 +287,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             mask_fp=get_ir_mask(flags=flags, mode=['fp'])
 
             false_positives=np.array(injrec)[mask_fp]
-            recovered=np.array(injrec)[mask_rec]
+            recovered=np.array(_N1_25_s_4_120injrec)[mask_rec]
 
             flase_positives_energy=np.log10(np.array([false_positives[i]["recovered"]['energy'] for i in range(len(false_positives))]))
             recovered_energy=np.log10(np.array([recovered[i]["recovered"]['energy'] for i in range(len(recovered))]))
