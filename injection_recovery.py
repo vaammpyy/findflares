@@ -287,7 +287,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             mask_fp=get_ir_mask(flags=flags, mode=['fp'])
 
             false_positives=np.array(injrec)[mask_fp]
-            recovered=np.array(_N1_25_s_4_120injrec)[mask_rec]
+            recovered=np.array(injrec)[mask_rec]
 
             flase_positives_energy=np.log10(np.array([false_positives[i]["recovered"]['energy'] for i in range(len(false_positives))]))
             recovered_energy=np.log10(np.array([recovered[i]["recovered"]['energy'] for i in range(len(recovered))]))
