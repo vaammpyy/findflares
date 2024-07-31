@@ -374,18 +374,23 @@ class TESSLC:
         time=self.lc.detrended['time']
         flux=self.lc.detrended['flux']
         flux_err=self.lc.detrended['flux_err']
-        mean=np.mean(flux)
-        std=np.std(flux)
+        mean=np.median(flux)
+        # std=np.std(flux)
         flux_dev=abs(flux-mean)
-        outlier_mask=flux_dev<3*std
+        mad=MAD(flux)
+        outlier_mask=flux_dev<1.5*mad
         gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=4, fbeg=1/14)
         fap=gls.FAP()
+        pmax=gls.pmax
+        pwr_lvl=gls.powerLevel(0.001)
         period=gls.best['P']
 
-        if fap>0.001:
+        if pmax<pwr_lvl:
             rotation= False
+            print(f"PWR-DIFF::{pmax-pwr_lvl}")
         else:
             rotation= True
+            print(f"PWR-DIFF::{pmax-pwr_lvl}")
         if rotation:
             print("Rotation found.")
             self.star.prot=period

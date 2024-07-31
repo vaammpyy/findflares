@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import pdb
 from misc import MAD
 from FINDflare_dport import FINDflare
+import copy
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """
@@ -204,19 +205,21 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
 
                 gls=Gls(((time[combined_mask], flux_detrended[combined_mask], flux_err[combined_mask])), fend=4, fbeg=1/14)
                 fap=gls.FAP()
+                pmax=gls.pmax
+                pwr_lvl=gls.powerLevel(0.001)
                 period=gls.best['P']
                 mask_flare=True
                 mask_transit=True
                 mask_outlier=True
-                if fap<0.001:
-                    print(f"FAP::{fap}, Period::{period}, rotation found.")
+                if pmax>pwr_lvl:
+                    print(f"PWR-DIFF::{pmax-pwr_lvl}, Period::{period}, rotation found.")
                     find_flare(obj, find_transit=mask_transit)
                     if i>3:
                         rotation= False
                     else:
                         rotation= True
                 else:
-                    print(f"FAP::{fap}, rotation not found.")
+                    print(f"PWR-DIFF::{pmax-pwr_lvl}, rotation not found.")
                     rotation= False
 
                 # fig=plt.figure(figsize=(20,10))
@@ -314,9 +317,12 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
     print("MEDIAN DETREND STARTED")
 
     time=obj.lc.full['time']
-    flux=obj.lc.full['flux']
+    flux=copy.copy(obj.lc.full['flux'])
+    flux_copy=copy.copy(flux)
     flux_err=obj.lc.full['flux_err']
     quality=obj.lc.full['quality']
+    mean=np.mean(flux)
+    median=np.median(flux)
     
     cadence=obj.inst.cadence*3600*24
     window_length_dp=int(window_length*3600/cadence)
@@ -325,9 +331,15 @@ def Median_detrend(obj, segments=None, window_length=12, mask_flare=False, mask_
     if window_length_dp%2==0:
         window_length_dp+=1
 
+    flux_dev=abs(flux-mean)
+    mad=MAD(flux)
+    outlier_mask=flux_dev<3*mad
+    neg_outlier_mask=np.logical_not(outlier_mask)
+    flux[neg_outlier_mask]=median
+
     sav_model = savgol_filter(flux, window_length_dp, 1) - 1
     # medfilt_model = medfilt(flux, window_length_dp)
-    flux_detrended = flux - sav_model
+    flux_detrended = flux_copy - sav_model
     # flux_detrended = flux - medfilt_model
 
     lc_detrended={'time':time,

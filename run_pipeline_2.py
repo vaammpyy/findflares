@@ -20,12 +20,26 @@ parser.add_argument('-i', '--injrec',
                     # action='store_true',
                     help='Number of injection recovery test runs.')
 
+parser.add_argument('-s', '--sector',
+                    type=int,
+                    default=0,
+                    # action='store_true',
+                    help='Observation sector for the data.')
+
+parser.add_argument('-c', '--cadence',
+                    type=int,
+                    default=0,
+                    # action='store_true',
+                    help='Observation cadence for the data.')
+
 # Step 3: Parse the arguments
 args = parser.parse_args()
 
 rerun=args.rerun
 DATA_dir= data_dir
 injrec=args.injrec
+input_sector=args.sector
+input_cadence=args.cadence
 
 print(f"RE-RUN::{rerun}")
 print(f"Inj-Rec::{injrec}")
@@ -37,7 +51,10 @@ def pipeline(tic, data_dir, redo, injrec):
     cad_list=[20, 120]
     print(f"Searching for observations with CADENCE: {cad_list}")
     try:
-        search_result = search_lightcurve(tic, cadence=cad_list, ret_list=True)
+        if input_cadence and input_sector:
+            search_result = [(tic, input_sector, input_cadence)]
+        else:
+            search_result = search_lightcurve(tic, cadence=cad_list, ret_list=True)
         if search_result:
             for result in search_result:
                 TIC, sector, cad = result
