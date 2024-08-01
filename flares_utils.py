@@ -582,8 +582,8 @@ def add_flares(obj, N=10):
         obj.injection['t_peak'].append(t_peak[i])
         obj.injection['i_start'].append(start)
         obj.injection['i_stop'].append(stop)
-        obj.injection['ampl'].append(10**log10_ampl)
-        obj.injection['fwhm'].append(10**log10_fwhm)
+        obj.injection['ampl'].append(ampl)
+        obj.injection['fwhm'].append(log10_fwhm)
         obj.injection['energy'].append(energy.value)
     
     obj.lc.full['flux']+=net_flares_lc
