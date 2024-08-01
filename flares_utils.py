@@ -531,12 +531,15 @@ def add_flares(obj, N=10):
     net_flares_lc=np.zeros(len(time))
     for i in range(len(t_peak)):
         #fwhm is in seconds
-        log10_fwhm=np.random.uniform(low=1.0,high=3.5)
+        log10_fwhm=np.random.uniform(low=10**1.0,high=10**3.5)
         #ampl is in counts/s
-        log10_ampl=np.random.uniform(low=1.0,high=4.0)
+        log10_ampl=np.random.uniform(low=10**1.0,high=10**4.0)
 
-        fwhm=10**(log10_fwhm)/(24*3600)
-        ampl=10**log10_ampl
+        # fwhm=10**(log10_fwhm)/(24*3600)
+        # ampl=10**log10_ampl
+
+        fwhm=log10_fwhm/(24*3600)
+        ampl=log10_ampl
         flares_lc=aflare1(time, t_peak[i], fwhm, ampl)
 
         net_flares_lc=net_flares_lc+flares_lc
