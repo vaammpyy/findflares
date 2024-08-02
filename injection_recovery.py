@@ -230,26 +230,29 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             recovered=np.array(injrec)[mask_rec]
             injected=np.array(injrec)[mask_inj]
 
-            recovered_fwhm=np.log10(np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))]))
-            recovered_ampl=np.log10(np.array([recovered[i]["injected"]['ampl'] for i in range(len(recovered))]))
+            recovered_fwhm=np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))])
+            recovered_ampl=np.array([recovered[i]["injected"]['ampl'] for i in range(len(recovered))])
 
-            injected_fwhm=np.log10(np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))]))
-            injected_ampl=np.log10(np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))]))
+            injected_fwhm=np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))])
+            injected_ampl=np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))])
 
-            recovered_hist2d=np.histogram2d(recovered_fwhm, recovered_ampl, bins=[np.linspace(1,3.5,10), np.linspace(1,4,10)])
-            injected_hist2d=np.histogram2d(injected_fwhm, injected_ampl, bins=[np.linspace(1,3.5,10), np.linspace(1,4,10)])
+            recovered_hist2d=np.histogram2d(recovered_fwhm, recovered_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+            injected_hist2d=np.histogram2d(injected_fwhm, injected_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
 
             rec_frac=recovered_hist2d[0]/injected_hist2d[0]
 
             xedges=injected_hist2d[1]
             yedges=injected_hist2d[2]
 
-            fig=plt.figure(figsize=(6,6))
-            plt.imshow(rec_frac.T,origin='lower', aspect='equal',
-                    extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+            fig=plt.figure(figsize=(8,8))
+            # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
+            #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+            plt.pcolormesh(10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
             plt.xlabel("log10(FWHM) [s]", fontsize=14)
             plt.ylabel("log10(Ampl) [ct/s]", fontsize=14)
             plt.title("Recovery Fraction", fontsize=16)
+            plt.xscale('log')
+            plt.yscale('log')
             plt.colorbar()
 
     if mode=='erg_comp':
