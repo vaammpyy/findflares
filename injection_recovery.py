@@ -248,8 +248,8 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
             #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
             plt.pcolormesh(10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
-            plt.xlabel("log10(FWHM) [s]", fontsize=14)
-            plt.ylabel("log10(Ampl) [ct/s]", fontsize=14)
+            plt.xlabel("FWHM [s]", fontsize=14)
+            plt.ylabel("Ampl [ct/s]", fontsize=14)
             plt.title("Recovery Fraction", fontsize=16)
             plt.xscale('log')
             plt.yscale('log')
