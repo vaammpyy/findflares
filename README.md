@@ -24,4 +24,18 @@ Installing the dependencies.
 
 ---
 
+## Pipeline execution
+
+Runs the pipeline for all the TESS sectors with `20, 120` cadence.
+`python3 run_pipeline_2.py -t <TIC>`
+
+Re-runs the pipeline for all the TESS sectors with `20, 120` cadence.
+`python3 run_pipeline_2.py -t <TIC> -r`
+
+Runs the pipeline for all the given TESS sectors and cadence.
+`python3 run_pipeline_2.py -t <TIC> -s <sector> -c <cadence>`
+
+Run the pipeline for all the TESS sectors with `20, 120` cadence with injection recovery tests.
+`python3 run_pipeline_2.py -t <TIC> -i <number-of-injrec-tests>`
+
 Work in progress.
