@@ -148,15 +148,16 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
             mask_outlier=True
             while rotation:
                 print(f"Iter::{i}")
-                if mask_flare:
-                    flare_mask=obj.lc.flare['mask']
-                    if flare_mask.size==0:
-                        comb_model_mask = model_mask
-                    else:
-                        comb_model_mask = flare_mask & model_mask
-                else:
-                    comb_model_mask = model_mask
+                # if mask_flare:
+                #     flare_mask=obj.lc.flare['mask']
+                #     if flare_mask.size==0:
+                #         comb_model_mask = model_mask
+                #     else:
+                #         comb_model_mask = flare_mask & model_mask
+                # else:
+                #     comb_model_mask = model_mask
 
+                comb_model_mask = model_mask
                 if mask_transit:
                     transit_mask=obj.lc.transit['mask']
                     comb_model_mask = transit_mask & comb_model_mask
@@ -164,10 +165,13 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 if mask_outlier:
                     flux=obj.lc.full['flux']
                     mean=np.mean(flux)
-                    # std=np.std(flux)
+                    std=np.std(flux[model_mask])
                     mad=MAD(flux)
                     flux_dev=abs(flux-mean)
-                    outlier_mask=flux_dev<mad_th*mad
+                    if mask_flare:
+                        outlier_mask=(flux_dev<mad_th*mad) & (flux_dev<2*std)
+                    else:
+                        outlier_mask=flux_dev<mad_th*mad
                     comb_model_mask = outlier_mask & comb_model_mask
 
                 eval_mask=get_mask(obj, segments=[seg])
@@ -177,31 +181,45 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 flux_detrended=obj.lc.full['flux'][eval_mask]-map_soln['pred']
                 flux_err=obj.lc.full['flux_err'][eval_mask]
 
-                # find flares and extending it.
-                start, stop=FINDflare(flux_detrended, flux_err, N1=3, N2=1, N3=3, avg_std=True, std_window=5)
-                if len(start)>0: 
-                    if int(obj.inst.cadence*24*3600) == 20:
-                        close_th=18
-                    if int(obj.inst.cadence*24*3600) == 120:
-                        close_th=3
-                    start, stop= _include_tail(flux, start, stop, sig_lvl=1)
-                    start, stop=_merge_flares(start, stop, close_th=close_th)
-                    #making a negative flare mask
-                    flare_mask=np.ones(len(time), dtype=bool)
+                # fig=plt.figure(figsize=(20,10))
+                # # plt.scatter(obj.lc.full['time'][comb_model_mask], obj.lc.full['flux'][comb_model_mask], s=1, color='k')
+                # plt.scatter(time, flux_detrended, s=0.01, color='k')
+                # # if mask_outlier:
+                # #     plt.scatter(obj.lc.full['time'][outlier_mask], obj.lc.full['flux'][outlier_mask], s=1, color='g')
+                # # if mask_transit:
+                # #     plt.scatter(obj.lc.full['time'][transit_mask], obj.lc.full['flux'][transit_mask], s=1, color='b')
+                # # if mask_flare:
+                # #     plt.scatter(obj.lc.full['time'][flare_mask], obj.lc.full['flux'][flare_mask], s=1, color='r')
+                # # plt.plot(time, map_soln['pred'], color='magenta')
+                # plt.savefig(f"./{seg}_{i}_*.png")
+                # plt.close()
 
-                for j in range(len(start)):
-                    flare_mask[start[j]:stop[j]+1]=0
+                # find flares and extending it.
+                # start, stop=FINDflare(flux_detrended, flux_err, N1=3, N2=1, N3=3, avg_std=True, std_window=5)
+                # if len(start)>0: 
+                #     if int(obj.inst.cadence*24*3600) == 20:
+                #         close_th=18
+                #     if int(obj.inst.cadence*24*3600) == 120:
+                #         close_th=3
+                #     start, stop= _include_tail(flux, start, stop, sig_lvl=1)
+                #     start, stop=_merge_flares(start, stop, close_th=close_th)
+                #     #making a negative flare mask
+                #     flare_mask=np.ones(len(time), dtype=bool)
+
+                # for j in range(len(start)):
+                #     flare_mask[start[j]:stop[j]+1]=0
 
                 # making outlier mask
                 mean=np.mean(flux_detrended)
                 std=np.std(flux_detrended)
                 flux_dev=abs(flux_detrended-mean)
                 outlier_mask=flux_dev<3*std
+                combined_mask=outlier_mask
 
-                if mask_flare and len(start)>0:
-                    combined_mask = outlier_mask & flare_mask
-                else:
-                    combined_mask = outlier_mask
+                # if mask_flare and len(start)>0:
+                #     combined_mask = outlier_mask & flare_mask
+                # else:
+                #     combined_mask = outlier_mask
 
                 gls=Gls(((time[combined_mask], flux_detrended[combined_mask], flux_err[combined_mask])), fend=4, fbeg=1/14)
                 fap=gls.FAP()
@@ -214,7 +232,7 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 if pmax>pwr_lvl:
                     print(f"PWR-DIFF::{pmax-pwr_lvl}, Period::{period}, rotation found.")
                     find_flare(obj, find_transit=mask_transit)
-                    if i>3:
+                    if i>=3:
                         rotation= False
                     else:
                         rotation= True
@@ -224,6 +242,7 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
 
                 # fig=plt.figure(figsize=(20,10))
                 # plt.scatter(time, obj.lc.full['flux'][eval_mask], s=0.01, color='k')
+                # # plt.scatter(time[1-combined_mask], obj.lc.full['flux'][1-combined_mask], s=1, color='red')
                 # plt.plot(time, map_soln['pred'], color='magenta')
                 # plt.savefig(f"./{seg}_{i}.png")
                 # plt.close()

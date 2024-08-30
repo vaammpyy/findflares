@@ -7,6 +7,7 @@ import astropy.units as u
 import astropy.constants as const
 from misc import get_dist_gaia, get_dist_tess
 from random import sample, uniform
+import matplotlib.pyplot as plt
 
 def _merge_flares(start_indices, stop_indices, close_th):
     """
@@ -183,6 +184,10 @@ def find_flare(obj, find_transit=False):
     flux=data['flux']
     flux_err=data['flux_err']
     start, stop=FINDflare(flux, flux_err, N1=3, N2=1, N3=3, avg_std=True, std_window=5)
+    # fig=plt.figure(figsize=(20,10))
+    # # plt.scatter(obj.lc.full['time'][comb_model_mask], obj.lc.full['flux'][comb_model_mask], s=1, color='k')
+    # plt.scatter(data['time'], flux, s=0.01, color='k')
+    # plt.show()
     # checking if flares are found
     if len(start)>0: 
         if int(obj.inst.cadence*24*3600) == 20:
@@ -397,6 +402,8 @@ def get_flare_energies(obj):
     dist_pc=get_dist_gaia(ra, dec)
     if dist_pc is None:
         dist_pc=get_dist_tess(TIC)
+    elif dist_pc.value:
+        dist_pc=dist_pc
     else:
         print("Distance not found.")
         print("Flare energy calculation skipped.")
