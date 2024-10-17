@@ -1,5 +1,5 @@
 from imports import *
-from defaults import *
+# from defaults import *
 
 def loadpickle(fName, sector, cadence, injrec=False):
     """
@@ -62,6 +62,8 @@ class TESSLC:
     ---------
     fName : int
         TIC-ID of the star.
+    data_dir : str
+        Directory to store the data.
 
     Attributes
     ----------
@@ -91,7 +93,7 @@ class TESSLC:
         Stores the instrument properties.
     """
 
-    def __init__(self,fName):
+    def __init__(self,fName, data_dir):
         """
         Initializes the TESSLC object.
         

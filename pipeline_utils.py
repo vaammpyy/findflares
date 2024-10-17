@@ -1,50 +1,11 @@
 from lc_class import *
 from imports import *
-import argparse
+import multiprocessing as mp
+from datetime import datetime
+from contextlib import redirect_stdout
+from time import time
 
-# Step 1: Create the parser
-parser = argparse.ArgumentParser(prog='FindFlare Pipeline',
-                                 description='Finds flares in TESS lightcurve')
-
-parser.add_argument('-t', "--tic",
-                    type=int,
-                    help='TIC of the target star.')
-
-parser.add_argument('-r', "--rerun",
-                    action='store_true',
-                    help='Re-run pipeline for all existing stars.')
-
-parser.add_argument('-i', '--injrec',
-                    type=int,
-                    default=0,
-                    # action='store_true',
-                    help='Number of injection recovery test runs.')
-
-parser.add_argument('-s', '--sector',
-                    type=int,
-                    default=0,
-                    # action='store_true',
-                    help='Observation sector for the data.')
-
-parser.add_argument('-c', '--cadence',
-                    type=int,
-                    default=0,
-                    # action='store_true',
-                    help='Observation cadence for the data.')
-
-# Step 3: Parse the arguments
-args = parser.parse_args()
-
-rerun=args.rerun
-DATA_dir= data_dir
-injrec=args.injrec
-input_sector=args.sector
-input_cadence=args.cadence
-
-print(f"RE-RUN::{rerun}")
-print(f"Inj-Rec::{injrec}")
-
-def run_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0):
+def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0):
     """
     Runs pipeline for TESS Lightcurves.
 
@@ -66,7 +27,13 @@ def run_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sect
     input_sector : int, optional
         Sector of the observation for analysis, by default value is 0
         pipeline runs over all avialable sectors.
+    
+    Output
+    -------
+    Generates plots and stores pickles.
     """
+    print(f"RE-RUN::{redo}")
+    print(f"Inj-Rec::{injrec}")
     print("Pipeline Started.")
     print("###################")
     print(f"TIC {tic}")
@@ -88,7 +55,7 @@ def run_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sect
                     print(f"Sector {sector}, Cadence {cad}")
                     # pipeline(TIC, sector, cad)
                     print("****************")
-                    lc=TESSLC(tic)
+                    lc=TESSLC(tic, data_dir)
                     # lc.download_lc(sector=sector, cadence=cadence, segment=True, clean=True)
                     try:
                         lc.download_lc(sector=sector, cadence=cad, clean=True)
@@ -124,5 +91,81 @@ def run_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sect
         print("HTTPError, failed to fetch data.")
     except ConnectionError:
         print("ConnectionError, failed to connect to the server.")
+    
+def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, process_index):
+    """
+    Spawns a pipeline process.
 
-run_pipeline(args.tic, data_dir, rerun, injrec, input_cadence, input_sector)
+    Spawns a pipeline process for multicore analysis, for single core process spawns process
+    sequentially.
+
+    Parameters
+    ----------
+    candidate : tuple (int, int, int)
+        Tuple with (TIC, sector, cadence).
+    data_dir : str
+        Directory to store the data.
+    redo : bool
+        If True re-runs the pipeline for existing data.
+    injrec : int
+        If '1' then performs injection recovery tests.
+    output_dir : str
+        Directory to store the output from the runs.
+    process_index : int
+        Index of the process initiated to avoid overwriting of output files
+    """
+    process_id=mp.current_process().pid
+    ID, sector, cad=candidate
+
+    output_file = os.path.join(output_dir, f"{process_id}_{process_index}.out")
+    with open(output_file, 'w') as f:
+        with redirect_stdout(f):
+            print(f"PID:{process_id}_{process_index}\nCANDIDATE:{candidate}\nREDO:{redo}\nINJREC:{injrec}\n")
+            t_start=time()
+            tess_pipeline(ID, data_dir, redo, injrec, cad, sector)
+            t_stop=time()
+            print(f"TIME:{t_stop-t_start:.2f}")
+
+def run_pipeline(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1, redo=True, injrec=0):
+    """
+    Runs the pipeline
+
+    General module to run a pipeline for a specific target list on specified number of cores.
+
+    Parameters
+    ----------
+    candidate_file : str
+        Path to the file having list of all candidates
+    telescope : str
+        Telescope name for pipeline, kepler reduction will be added
+    data_dir : str
+        Path to the directory for storing data.
+    output_dir : str
+        Path to the directory for storing outputs.
+    CPU_CORES : int, optional
+        Number of CPU cores to run the process, by default 1.
+    redo : bool, optional
+        If True re-runs the pipeline for existing data, by default True.
+    injrec : bool, optional
+        If True runs injection recovery tests.
+    """
+    candidate_arr=[]
+    with open(candidate_file, 'r') as file:
+        for line in file:
+            ID, sector, cad=line.split(',')
+            candidate_arr.append((int(ID), int(sector), int(cad)))
+    
+    time = datetime.now().strftime("%H%M_%d%m%Y")
+    job_id=f"job_{time}"
+    output_dir = f"{output_dir}/{job_id}"
+
+    try:
+        os.mkdir(output_dir)
+    except OSError:
+        pass
+
+    with mp.Pool(processes=CPU_CORES) as pool:
+        pool.starmap(spawn_pipeline_process, [(candidate, data_dir, redo, injrec, output_dir, index) for index, candidate in enumerate(candidate_arr)])
+
+
+

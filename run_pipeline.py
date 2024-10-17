@@ -1,6 +1,6 @@
 # THIS PIPELINE IS NOT UPDATED USE PIPELINE_2.py
 
-from TESSLC_class import *
+from lc_class import *
 from imports import *
 
 def pipeline(tic, sector, cadence):
