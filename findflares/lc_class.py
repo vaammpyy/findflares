@@ -24,7 +24,7 @@ def loadpickle(fName, sector, cadence, injrec=False):
         TESSLC object holding the lightcurve data and other parameters for flare detection process.
     """
     if injrec:
-        fObj=open(f"{data_dir}/{fName}/ir_{sector}_{cadence}.pkl",'rb')
+        fObj=open(f"{data_dir}/stars/{fName}/ir_{sector}_{cadence}.pkl",'rb')
     else:
         fObj=open(f"{data_dir}/{fName}/{sector}_{cadence}.pkl",'rb')
     Obj=pickle.load(fObj)
@@ -102,7 +102,7 @@ class TESSLC:
         fName : int
             TICID of the star.
         """
-        self.dir=f"{data_dir}/{fName}"
+        self.dir=f"{data_dir}/stars/{fName}"
         self.TIC=fName
         self.flares={"t_start":[],
                      "t_peak":[],
