@@ -1,9 +1,10 @@
-from lc_class import *
-from imports import *
 import multiprocessing as mp
 from datetime import datetime
 from contextlib import redirect_stdout
 from time import time
+
+from .lc_class import *
+from .imports import *
 
 def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0):
     """
@@ -152,8 +153,14 @@ def run_pipeline(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1, r
     candidate_arr=[]
     with open(candidate_file, 'r') as file:
         for line in file:
-            ID, sector, cad=line.split(',')
-            candidate_arr.append((int(ID), int(sector), int(cad)))
+            try:
+                ID, sector, cad=line.split(',')
+                candidate_arr.append((int(ID), int(sector), int(cad)))
+            except ValueError:
+                ID=line
+                sector=0
+                cad=0
+                candidate_arr.append((int(ID), int(sector), int(cad)))
     
     time = datetime.now().strftime("%H%M_%d%m%Y")
     job_id=f"job_{time}"

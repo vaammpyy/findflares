@@ -1,7 +1,7 @@
 # THIS PIPELINE IS NOT UPDATED USE PIPELINE_2.py
 
-from lc_class import *
-from imports import *
+from .lc_class import *
+from .imports import *
 
 def pipeline(tic, sector, cadence):
     print("****************")

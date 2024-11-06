@@ -1,6 +1,7 @@
-from lc_class import *
-from imports import *
 import argparse
+
+from .lc_class import *
+from .imports import *
 
 # Step 1: Create the parser
 parser = argparse.ArgumentParser(prog='FindFlare Pipeline',

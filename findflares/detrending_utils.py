@@ -3,15 +3,16 @@ import pymc as pm
 import pymc_ext as pmx
 import pytensor.tensor as tt
 from celerite2.pymc import terms, GaussianProcess
-from lc_utils import get_period, get_mask
 from scipy.signal import savgol_filter, medfilt
-from gls import *
-from flares_utils import find_flare, _include_tail, _merge_flares
 import matplotlib.pyplot as plt
 import pdb
-from misc import MAD
-from FINDflare_dport import FINDflare
 import copy
+
+from .lc_utils import get_period, get_mask
+from .gls import *
+from .flares_utils import find_flare, _include_tail, _merge_flares
+from .misc import MAD
+from .FINDflare_dport import FINDflare
 
 def RotationTerm_model(obj, model_mask, eval_mask):
     """

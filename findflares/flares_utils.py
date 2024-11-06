@@ -1,13 +1,14 @@
 import numpy as np
-from FINDflare_dport import FINDflare
-from aflare import aflare, aflare1
 import pdb
 from scipy.integrate import simpson
 import astropy.units as u
 import astropy.constants as const
-from misc import get_dist_gaia, get_dist_tess
 from random import sample, uniform
 import matplotlib.pyplot as plt
+
+from .FINDflare_dport import FINDflare
+from .aflare import aflare, aflare1
+from .misc import get_dist_gaia, get_dist_tess
 
 def _merge_flares(start_indices, stop_indices, close_th):
     """

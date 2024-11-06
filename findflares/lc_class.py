@@ -1,4 +1,4 @@
-from imports import *
+from .imports import *
 # from defaults import *
 
 def loadpickle(fName, sector, cadence, injrec=False):

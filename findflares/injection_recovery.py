@@ -1,7 +1,8 @@
 import copy
 import numpy as np
-from imports import *
 import fnmatch
+
+from .imports import *
 
 def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1"):
     """

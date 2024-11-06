@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from gls import *
 import pdb
+
+from .gls import *
 
 def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
     """
