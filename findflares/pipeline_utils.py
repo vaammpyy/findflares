@@ -120,9 +120,9 @@ def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, proces
 
     output_file = os.path.join(output_dir, f"{process_id}_{process_index}.out")
 
-    track_job_file=os.path.join(data_dir+f"/stars/{ID}","job.out")
+    track_job_file=os.path.join(data_dir+f"/{ID}","job.out")
 
-    with open(track_job_file, 'w') as f:
+    with open(track_job_file, 'a') as f:
         with redirect_stdout(f):
             print(f"{output_dir}/{process_id}_{process_index}.out")
 
