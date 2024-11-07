@@ -102,7 +102,7 @@ class TESSLC:
         fName : int
             TICID of the star.
         """
-        self.dir=f"{data_dir}/stars/{fName}"
+        self.dir=f"{data_dir}/{fName}"
         self.TIC=fName
         self.flares={"t_start":[],
                      "t_peak":[],

@@ -49,7 +49,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
             for result in search_result:
                 TIC, sector, cad = result
                 # checking if the pipeline has already run or not
-                if os.path.isfile(f"{data_dir}/stars/{TIC}/{sector}_{cad}.pkl") and redo==False:
+                if os.path.isfile(f"{data_dir}/{TIC}/{sector}_{cad}.pkl") and redo==False:
                     print(f"Sector {sector}, Cadence {cad}")
                     print("Already exists.")
                 else:
@@ -171,7 +171,7 @@ def run_pipeline(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1, r
     
     time = datetime.now().strftime("%H%M_%d%m%Y")
     job_id=f"job_{time}"
-    output_dir = f"{output_dir}/jobs/{job_id}"
+    output_dir = f"{output_dir}/{job_id}"
 
     try:
         os.mkdir(output_dir)
