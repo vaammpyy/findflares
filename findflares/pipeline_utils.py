@@ -122,6 +122,12 @@ def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, proces
 
     track_job_file=os.path.join(data_dir+f"/{ID}","job.out")
 
+    try:
+        os.mkdir(f"{data_dir}/{ID}")
+    except OSError:
+        pass
+
+
     with open(track_job_file, 'a') as f:
         with redirect_stdout(f):
             print(f"{output_dir}/{process_id}_{process_index}.out")
