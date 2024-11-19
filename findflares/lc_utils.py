@@ -21,7 +21,7 @@ def segment_lightcurve(obj, period, factor=1, min_segment_len=2):
     factor : float, optional
         How much times the <time_period> is the allowed gap, by default 1. Chosen by the memory of the GP cavariance. [NOT USED]
     min_segment_len (hours) : float, optional
-        Minimum length of the allowed segment, by default 2.
+        Minimum length of the allowed segment, by default 2hr.
     
     Attributes
     ----------

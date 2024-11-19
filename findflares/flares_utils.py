@@ -269,8 +269,23 @@ def get_flare_param(obj):
 
     for i in range(len(t_start)):
         start, stop=_get_flare_tstart_tstop(time, flux_detrended, t_start[i], t_stop[i])
-        obj.flares['t_start'].append(time[start])
-        obj.flares['t_stop'].append(time[stop])
+        time_start=time[start]
+        time_stop=time[stop]
+        # if time_start-time[0]>0.083 and time[-1]-time_stop>0.083: # removing detected flares near the edges.
+        #     obj.flares['t_start'].append(time_start)
+        #     obj.flares['t_stop'].append(time_stop)
+        #     obj.flares["i_start"].append(start)
+        #     obj.flares["i_stop"].append(stop)
+        #     flux_peak_index=np.argmax(flux_detrended[start:stop+1])
+        #     amplitude=flux_detrended[start:stop+1][flux_peak_index]
+        #     obj.flares['amplitude'].append(amplitude)
+        #     dur=(time[stop]-time[start])*24*3600
+        #     obj.flares['duration'].append(dur)
+        #     obj.flares['t_peak'].append(time[start:stop+1][flux_peak_index])
+        # else:
+        #     pass
+        obj.flares['t_start'].append(time_start)
+        obj.flares['t_stop'].append(time_stop)
         obj.flares["i_start"].append(start)
         obj.flares["i_stop"].append(stop)
         flux_peak_index=np.argmax(flux_detrended[start:stop+1])
