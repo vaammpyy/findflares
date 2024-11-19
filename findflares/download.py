@@ -28,12 +28,16 @@ def search_lightcurve(tic, cadence=20, mission="TESS", author="SPOC", ret_list=F
     if ret_list:
         list=[]
         i=0
-        for result in search_result.mission:
-            sector= int(result.split(" ")[-1])
-            cad = search_result[i].exptime.value[0]
-            tup=(tic, sector, int(cad))
-            list.append(tup)
-            i+=1
+        try:
+            for result in search_result.mission:
+                sector= int(result.split(" ")[-1])
+                cad = search_result[i].exptime.value[0]
+                tup=(tic, sector, int(cad))
+                list.append(tup)
+                i+=1
+        except KeyError:
+            list=[]
+            print(f"Could not resolve {tic} to a sky position.")
         return list
     else:
         print(search_result)
