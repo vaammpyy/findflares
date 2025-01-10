@@ -85,9 +85,9 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         lc.plot(mode="model_overlay", save_fig=True)
                         lc.pickleObj()
                     print("****************")
+                    print("Pipeline Completed.")
         else:
             print("No data found!")
-        print("Pipeline Completed.")
     except HTTPError:
         print("HTTPError, failed to fetch data.")
     except ConnectionError:
@@ -187,5 +187,7 @@ def run_pipeline(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1, r
     with mp.Pool(processes=CPU_CORES) as pool:
         pool.starmap(spawn_pipeline_process, [(candidate, data_dir, redo, injrec, output_dir, index) for index, candidate in enumerate(candidate_arr)])
 
-
+# here I'll add a separate module for running the pipeline for slurm process
+# This new process will take in a TIC derived from a TIC list and then 
+# start the TESS_pipeline module for that TIC.
 

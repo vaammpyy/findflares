@@ -10,4 +10,6 @@ This is inital release of the findflare module, there might be some major change
 
 ## TODO
 -- 2024-11-19
-* Implement a method for rejecting the flares detected near datagaps and near start and stop of the observations, as lightcurves can drift causing a false flare detection.
+* Currently the Rotation period of the star being stored is coming from the GLS method, final rotation model result is not being stored in the obj.star.prot.
+-- 2024-12-12
+* Add a post-processing module which will sort out all the stars for which data was found and pipeline was successfully completed.

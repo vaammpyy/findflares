@@ -152,6 +152,45 @@ def _include_tail(data, start_indices, stop_indices, sig_lvl, transit=False):
     
         return new_start_indices, new_stop_indices
 
+def _check_edge_flare(obj, flare_start_time, flare_stop_time):
+    """
+    Checks flares near data gaps.
+
+    Checks if the flare time is near the data gaps or near the start and stop of the observations.
+    These regions are prone to having drift in the data points due to poor pointing.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    flare_start_time : float
+        Start time of the flare to be checked.
+    flare_stop_time : float
+        Stop time of the flare to be checked.
+
+    Returns
+    -------
+    flare_near_edge : bool
+        True if the flare is near the edge of the data gap.
+    """
+    segment_mask=obj.lc.segment
+    segment_break=np.where(np.diff(segment_mask)>=1)
+    time=obj.lc.full['time']
+    gap_time=np.array([time[0], time[-1]])
+    for gap in segment_break:
+        if gap!=0 or gap!=-1:
+            gap_time=np.append(gap_time, [time[gap], time[gap+1]])
+    diff_start_time=abs(gap_time-flare_start_time)*24
+    start_near_edge=np.any(diff_start_time<2)
+    diff_stop_time=abs(gap_time-flare_stop_time)*24
+    stop_near_edge=np.any(diff_stop_time<2)
+
+    if start_near_edge or stop_near_edge:
+        flare_near_edge=True
+    else:
+        flare_near_edge=False
+    return flare_near_edge
+
 def find_flare(obj, find_transit=False):
     """
     Finds flares in the lightcurve.
@@ -271,29 +310,17 @@ def get_flare_param(obj):
         start, stop=_get_flare_tstart_tstop(time, flux_detrended, t_start[i], t_stop[i])
         time_start=time[start]
         time_stop=time[stop]
-        # if time_start-time[0]>0.083 and time[-1]-time_stop>0.083: # removing detected flares near the edges.
-        #     obj.flares['t_start'].append(time_start)
-        #     obj.flares['t_stop'].append(time_stop)
-        #     obj.flares["i_start"].append(start)
-        #     obj.flares["i_stop"].append(stop)
-        #     flux_peak_index=np.argmax(flux_detrended[start:stop+1])
-        #     amplitude=flux_detrended[start:stop+1][flux_peak_index]
-        #     obj.flares['amplitude'].append(amplitude)
-        #     dur=(time[stop]-time[start])*24*3600
-        #     obj.flares['duration'].append(dur)
-        #     obj.flares['t_peak'].append(time[start:stop+1][flux_peak_index])
-        # else:
-        #     pass
-        obj.flares['t_start'].append(time_start)
-        obj.flares['t_stop'].append(time_stop)
-        obj.flares["i_start"].append(start)
-        obj.flares["i_stop"].append(stop)
-        flux_peak_index=np.argmax(flux_detrended[start:stop+1])
-        amplitude=flux_detrended[start:stop+1][flux_peak_index]
-        obj.flares['amplitude'].append(amplitude)
-        dur=(time[stop]-time[start])*24*3600
-        obj.flares['duration'].append(dur)
-        obj.flares['t_peak'].append(time[start:stop+1][flux_peak_index])
+        if _check_edge_flare(obj, time_start, time_stop) == False:
+            obj.flares['t_start'].append(time_start)
+            obj.flares['t_stop'].append(time_stop)
+            obj.flares["i_start"].append(start)
+            obj.flares["i_stop"].append(stop)
+            flux_peak_index=np.argmax(flux_detrended[start:stop+1])
+            amplitude=flux_detrended[start:stop+1][flux_peak_index]
+            obj.flares['amplitude'].append(amplitude)
+            dur=(time[stop]-time[start])*24*3600
+            obj.flares['duration'].append(dur)
+            obj.flares['t_peak'].append(time[start:stop+1][flux_peak_index])
 
 def get_ED(obj):
     """

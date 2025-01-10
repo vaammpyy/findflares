@@ -292,15 +292,11 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     if mode == 'detrended':
         fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
         plt.scatter(obj.lc.detrended['time'][mask],obj.lc.detrended['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
-        if show_flares and len(obj.lc.flare['start'])>0:
-            f_start=obj.lc.flare['start']
-            f_stop=obj.lc.flare['stop']
-            for i in range(len(f_start)):
-                plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=4, color='r')
+        if show_flares and len(obj.flares['i_start'])>0:
             f_start=obj.flares['i_start']
             f_stop=obj.flares['i_stop']
             for i in range(len(f_start)):
-                plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=1, color='cyan', alpha=0.7)
+                plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=4, color='red')
 
         if show_transits and len(obj.lc.transit['start'])>0:
             t_start=obj.lc.transit['start']
