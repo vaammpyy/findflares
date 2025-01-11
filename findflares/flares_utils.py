@@ -177,7 +177,7 @@ def _check_edge_flare(obj, flare_start_time, flare_stop_time):
     segment_break=np.where(np.diff(segment_mask)>=1)
     time=obj.lc.full['time']
     gap_time=np.array([time[0], time[-1]])
-    for gap in segment_break:
+    for gap in segment_break[0]:
         if gap!=0 or gap!=-1:
             gap_time=np.append(gap_time, [time[gap], time[gap+1]])
     diff_start_time=abs(gap_time-flare_start_time)*24
