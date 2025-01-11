@@ -174,6 +174,9 @@ def _check_edge_flare(obj, flare_start_time, flare_stop_time):
         True if the flare is near the edge of the data gap.
     """
     segment_mask=obj.lc.segment
+    if segment_mask is None:
+        obj.segment_lc()
+    segment_mask=obj.lc.segment
     segment_break=np.where(np.diff(segment_mask)>=1)
     time=obj.lc.full['time']
     gap_time=np.array([time[0], time[-1]])
