@@ -3,8 +3,8 @@ from datetime import datetime
 from contextlib import redirect_stdout
 from time import time
 
-from .lc_class import *
-from .imports import *
+from findflares.lc_class import *
+from findflares.imports import *
 
 def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0):
     """
