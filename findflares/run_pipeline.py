@@ -28,7 +28,7 @@ def str2bool(v):
         return False
     raise argparse.ArgumentTypeError("Boolean value expected.")
 
-parser.add_argument('--rerun', type=str2bool, default=False, help='True to rerun the pipeline for already processed data.')
+parser.add_argument('-r','--rerun', type=str2bool, default=False, help='True to rerun the pipeline for already processed data.')
 
 parser.add_argument('-i', '--injrec',
                     type=int,
