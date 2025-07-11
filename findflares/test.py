@@ -8,4 +8,4 @@ data_dir="/home/vampy/acads/projects/Superflares/Data"
 output_dir=data_dir
 CPU_CORES=2
 
-run_pipeline(candidates_file, telescope, data_dir,output_dir,CPU_CORES, redo=False)
+run_pipeline_py(candidates_file, telescope, data_dir,output_dir,CPU_CORES, redo=False, injrec=0)

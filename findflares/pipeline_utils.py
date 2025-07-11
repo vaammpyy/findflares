@@ -140,7 +140,7 @@ def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, proces
             t_stop=time()
             print(f"TIME:{t_stop-t_start:.2f}")
 
-def run_pipeline(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1, redo=True, injrec=0):
+def run_pipeline_py(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1, redo=True, injrec=0):
     """
     Runs the pipeline
 
