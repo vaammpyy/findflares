@@ -124,7 +124,6 @@ def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, proces
 
     try:
         os.mkdir(f"{data_dir}/{ID}")
-        os.mkdir(f"{output_dir}")
     except OSError:
         pass
 
