@@ -1,3 +1,5 @@
 **/__pycache__
 defaults.py
 **/findflares.egg-info
+./tests/output/*
+!./tests/output/.gitkeep
