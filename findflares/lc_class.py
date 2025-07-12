@@ -559,7 +559,7 @@ class InjRec(TESSLC):
         inst : INST
             Stores the instrument properties.
         """
-        super().__init__(tesslc.TIC)
+        super().__init__(tesslc.TIC, tesslc.dir)
         self.lc = copy.deepcopy(tesslc.lc)
         self.orig_lc = copy.deepcopy(tesslc.lc)
         self.star =copy.deepcopy(tesslc.star)

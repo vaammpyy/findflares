@@ -56,7 +56,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                     print(f"Sector {sector}, Cadence {cad}")
                     # pipeline(TIC, sector, cad)
                     print("****************")
-                    lc=TESSLC(tic, data_dir)
+                    lc=TESSLC(tic, data_dir+"/"+str(TIC))
                     # lc.download_lc(sector=sector, cadence=cadence, segment=True, clean=True)
                     try:
                         lc.download_lc(sector=sector, cadence=cad, clean=True)
