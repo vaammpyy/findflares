@@ -1,7 +1,7 @@
 from .imports import *
 # from defaults import *
 
-def loadpickle(fName, sector, cadence, injrec=False):
+def loadpickle(fName, sector, cadence, data_dir,injrec=False):
     """
     Opens TESSLC pickled object.
 
@@ -15,6 +15,8 @@ def loadpickle(fName, sector, cadence, injrec=False):
         Observation sector.
     cadence : int
         Cadence of the observation.
+    data_dir : str
+        Directory of the files.
     injrec : bool, optional
         If True loads the injection recovery pickle, by default False.
     
@@ -102,7 +104,7 @@ class TESSLC:
         fName : int
             TICID of the star.
         """
-        self.dir=f"{data_dir}/{fName}"
+        self.dir=data_dir
         self.TIC=fName
         self.flares={"t_start":[],
                      "t_peak":[],
