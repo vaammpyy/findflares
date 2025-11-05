@@ -82,6 +82,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         irec.pickleObj()
                     else:
                         lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
+                        lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="model_overlay", save_fig=True)
                         lc.pickleObj()
                     print("****************")

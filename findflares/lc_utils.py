@@ -261,6 +261,8 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     mode : str, optional
         Plotting mode, by default None.
         None : Full lightcurve
+
+        'flare_overlay' : Full lightcurve with flare overlaid.
         'model_overlay' : Full lightcurve with model overlaid.
         'detrended' : Detrended lightcurve.
         'flare_zoom' : Zoomed in flare.
@@ -303,6 +305,22 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
             t_stop=obj.lc.transit['stop']
             for i in range(len(t_start)):
                 plt.scatter(obj.lc.detrended['time'][t_start[i]:t_stop[i]+1], obj.lc.detrended['flux'][t_start[i]:t_stop[i]+1], s=2, color='b')
+    
+    if mode == "flare_overlay":
+        fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+        plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
+        if show_flares and len(obj.flares['i_start'])>0:
+            f_start=obj.flares['i_start']
+            f_stop=obj.flares['i_stop']
+            for i in range(len(f_start)):
+                plt.scatter(obj.lc.full['time'][f_start[i]:f_stop[i]+1], obj.lc.full['flux'][f_start[i]:f_stop[i]+1], s=4, color='red')
+
+        if show_transits and len(obj.lc.transit['start'])>0:
+            t_start=obj.lc.transit['start']
+            t_stop=obj.lc.transit['stop']
+            for i in range(len(t_start)):
+                plt.scatter(obj.lc.detrended['time'][t_start[i]:t_stop[i]+1], obj.lc.detrended['flux'][t_start[i]:t_stop[i]+1], s=2, color='b')
+
 
     if mode == 'flare_zoom':
         save_fig=False

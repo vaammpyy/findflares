@@ -429,7 +429,7 @@ def _get_flare_tstart_tstop(time, flux, t_start, t_stop, rel_diff_th=0.01):
 
 def get_flare_energies(obj):
     """
-    Calculates flare energies
+    Calculates flare energies in TESS bandpass, mean wavelength of 745nm.
 
     Calculates flare energies using the eq 1 section 3.2 in Diamond-lowe et al. 2021
 
