@@ -383,7 +383,7 @@ class TESSLC:
         flux_dev=abs(flux-mean)
         mad=MAD(flux)
         outlier_mask=flux_dev<1.5*mad
-        gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=4, fbeg=1/14)
+        gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=24, fbeg=1/14)
         fap=gls.FAP()
         pmax=gls.pmax
         pwr_lvl=gls.powerLevel(0.001)

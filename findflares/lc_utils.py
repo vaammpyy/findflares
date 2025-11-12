@@ -99,7 +99,7 @@ def get_period(obj, mask, ret_pow=False, ret_FAP=False, detrended=False):
     flux_err=data['flux_err'][mask]
     # result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
     # gls=Gls(((time, flux, flux_err)), fend=2, fbeg=2/((time[-1]-time[0])*24))
-    gls=Gls(((time, flux, flux_err)), fend=4, fbeg=1/14)
+    gls=Gls(((time, flux, flux_err)), fend=24, fbeg=1/14)
     # gls=Gls(((time, flux, flux_err)), Pend=100, Pbeg=0.01/24)
     period=gls.best['P']
     power=gls.best['amp']
@@ -264,6 +264,7 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
 
         'flare_overlay' : Full lightcurve with flare overlaid.
         'model_overlay' : Full lightcurve with model overlaid.
+        'flare_model_overlay' : Full lightcurve with flare and model overlaid.
         'detrended' : Detrended lightcurve.
         'flare_zoom' : Zoomed in flare.
     q_flags : list, optional
@@ -308,12 +309,28 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     
     if mode == "flare_overlay":
         fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
-        plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.01, color='k', label=f"TIC {obj.TIC}")
+        plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.05, color='k', label=f"TIC {obj.TIC}")
         if show_flares and len(obj.flares['i_start'])>0:
             f_start=obj.flares['i_start']
             f_stop=obj.flares['i_stop']
             for i in range(len(f_start)):
-                plt.scatter(obj.lc.full['time'][f_start[i]:f_stop[i]+1], obj.lc.full['flux'][f_start[i]:f_stop[i]+1], s=4, color='red')
+                plt.scatter(obj.lc.full['time'][f_start[i]:f_stop[i]+1], obj.lc.full['flux'][f_start[i]:f_stop[i]+1], s=8, color='red')
+
+        if show_transits and len(obj.lc.transit['start'])>0:
+            t_start=obj.lc.transit['start']
+            t_stop=obj.lc.transit['stop']
+            for i in range(len(t_start)):
+                plt.scatter(obj.lc.detrended['time'][t_start[i]:t_stop[i]+1], obj.lc.detrended['flux'][t_start[i]:t_stop[i]+1], s=2, color='b')
+
+    if mode == "flare_model_overlay":
+        fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+        plt.scatter(obj.lc.full['time'][mask],obj.lc.full['flux'][mask], s=0.05, color='k', label=f"TIC {obj.TIC}")
+        plt.plot(obj.lc.model['time'][mask],obj.lc.model['flux'][mask], color='magenta', label=f'{obj.lc.detrend_scheme}-model')
+        if show_flares and len(obj.flares['i_start'])>0:
+            f_start=obj.flares['i_start']
+            f_stop=obj.flares['i_stop']
+            for i in range(len(f_start)):
+                plt.scatter(obj.lc.full['time'][f_start[i]:f_stop[i]+1], obj.lc.full['flux'][f_start[i]:f_stop[i]+1], s=8, color='red')
 
         if show_transits and len(obj.lc.transit['start'])>0:
             t_start=obj.lc.transit['start']
@@ -330,7 +347,7 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
             fig=plt.figure(figsize=(20,10), facecolor='white')
             plt.scatter(obj.lc.detrended['time'][f_start[i]-100:f_stop[i]+100], obj.lc.detrended['flux'][f_start[i]-100:f_stop[i]+100], s=1, color='k', label=f"TIC {obj.TIC}")
             plt.scatter(obj.lc.detrended['time'][f_start[i]:f_stop[i]+1], obj.lc.detrended['flux'][f_start[i]:f_stop[i]+1], s=5, color='r', label="Flares")
-            plt.xlabel("Time [mjd - 2,457,000]", fontsize=14)
+            plt.xlabel("Time [mjd - 2,457,000]", fontsize=18)
             plt.ylabel("Flux [e/s]", fontsize=14)
             plt.legend(fontsize=14)
             plt.tick_params(labelsize=14)
@@ -340,9 +357,9 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     if injrec:
         fName=f"ir_{injrec_run:02d}_{fName}"
 
-    plt.xlabel("Time [mjd - 2,457,000]", fontsize=14)
-    plt.ylabel("Flux [e/s]", fontsize=14)
-    plt.legend(fontsize=14)
+    plt.xlabel("Time [mjd - 2,457,000]", fontsize=18)
+    plt.ylabel("Flux [e/s]", fontsize=18)
+    plt.legend(fontsize=18)
     plt.tick_params(labelsize=14)
     if save_fig:
         plt.savefig(f"{obj.dir}/{fName}", dpi=100)

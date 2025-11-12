@@ -53,7 +53,7 @@ def RotationTerm_model(obj, model_mask, eval_mask):
         # The parameters of the RotationTerm kernel
         log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=2)
 
-        log_period = pm.Normal("log_period", mu=np.log(period_peak), sigma=0.01) # sigma 0.01
+        log_period = pm.Normal("log_period", mu=np.log(period_peak), sigma=0.0001) # sigma 0.01
         period = pm.Deterministic("period", tt.exp(log_period))
         Q0 = pm.Normal("Q0", mu=5, sigma=2)
         log_dQ = pm.Normal("log_dQ", mu=0, sigma=1) # mu = 10.0
@@ -85,6 +85,11 @@ def RotationTerm_model(obj, model_mask, eval_mask):
 
         # Optimize to find the maximum a posterior parameters
         map_soln = pmx.optimize(progressbar=False)
+
+        for k, v in map_soln.items():
+            if k == 'period':
+                print(f"{k}: {v}")
+
         return map_soln
 
 def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False, mad_th=6):
