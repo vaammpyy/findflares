@@ -4,6 +4,8 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.mast import Catalogs
 
+Gaia.TIMEOUT = 60
+
 def MAD(x):
     """
     Median absolute deviation.

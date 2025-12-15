@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from .FINDflare_dport import FINDflare
 from .aflare import aflare, aflare1
 from .misc import get_dist_gaia, get_dist_tess
+from .imports import *
 
 def _merge_flares(start_indices, stop_indices, close_th):
     """
@@ -445,7 +446,11 @@ def get_flare_energies(obj):
     TIC=obj.TIC
     ra=obj.star.ra
     dec=obj.star.dec
-    dist_pc=get_dist_gaia(ra, dec)
+    dist_pc = None
+    try:
+        dist_pc=get_dist_gaia(ra, dec)
+    except HTTPError:
+        print("Distance not found, connection failed to the server.")
     if dist_pc is None:
         dist_pc=get_dist_tess(TIC)
     elif dist_pc.value:

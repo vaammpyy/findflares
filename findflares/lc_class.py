@@ -1,5 +1,4 @@
 from .imports import *
-# from defaults import *
 
 def loadpickle(fName, sector, cadence, data_dir,injrec=False):
     """
@@ -93,6 +92,8 @@ class TESSLC:
         Stores the properties of the star.
     inst : INST
         Stores the instrument properties.
+    pipeline_result : PIPELINE_RESULT
+        Stores the run information and quality flags.
     """
 
     def __init__(self,fName, data_dir):
@@ -221,6 +222,30 @@ class TESSLC:
             self.instrument=None
             self.cadence_err=None
 
+    class PIPELINE_RESULT:
+        def __init__(self):
+            """
+            Initializes the the pipeline_result sub-class.
+
+            Attributes
+            ----------
+            qualitty : str
+                "good": Successful run. Flare finding and detrending should be fine. By eye check not required.
+                "check": Successful run. By eye check required.
+                "bad": Unsuccessful run, By eye check no-required.
+            manually_checked : bool
+                The lightcurve has been looked at if True, this update is done via an automated script,
+                <insert_script.py>.
+            notes : str
+                Notes about the analysis, haven't decided how this will be used.
+            hostname : str
+                Stores the hostname of the device analysis was run on.
+            """
+            self.quality = None
+            self.manually_checked = False
+            self.notes = None
+            self.hostname = None
+
     def download_lc(self,sector, cadence=None, mission='TESS', author="SPOC", segment=False, clean=False):
         """
         Downloads the TESS lightcurve data for the star.
@@ -291,70 +316,7 @@ class TESSLC:
         """
         clean_lightcurve(self)
     
-    def detrend(self, segments=None, iter_detrend=True, mask_transit=True):
-        """
-        Detrends lightcurve.
-
-        Detrends lightcurve using gaussian process regression if rotation is found else uses a median filter of 12hr window.
-
-        Parameters
-        ----------
-        segments : list, optional
-            Segments to detrend, by default None and it'll detrend all the segments.
-        iter_detrend : bool, optional
-            If True iterative detrending will be performed using the flare masked method, by default True.
-        mask_transit : bool, optional
-            If True then in the second iteration of detrending process transits will be masked, by default True.
-        """
-        rotation=check_rotation(self)
-        if rotation:
-            GaussianProcess_detrend(self, segments=segments)
-            if iter_detrend:
-                find_flare(self, find_transit=mask_transit)
-                GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit)
-        else:
-            Median_detrend(self)
-
-    def detrend_2(self, segments=None, iter_detrend=True, mask_transit=True):
-        """
-        Detrends lightcurve, 2 iteration of GP.
-
-        Detrends lightcurve using median filter then checks for rotation in the residual,
-        if FAP<0.01 then rotation is found and GP is run for detrending else just median filter with
-        12hr window. 
-
-        Parameters
-        ----------
-        segments : list, optional
-            Segments to detrend, by default None and it'll detrend all the segments.
-        iter_detrend : bool, optional
-            If True iterative detrending will be performed using the flare masked method, by default True.
-        mask_transit : bool, optional
-            If True then in the second iteration of detrending process transits will be masked, by default True.
-        """
-        print("Detrending started.")
-        Median_detrend(self)
-        rotation=check_rotation_2(self)
-        if rotation:
-            print("Rotation found.")
-            print("Segmentation started.")
-            self.segment_lc()
-            print("Segmentation completed.")
-            print("iter 1")
-            GaussianProcess_detrend(self, segments=segments, mask_outlier=True)
-            if iter_detrend:
-                find_flare(self, find_transit=mask_transit)
-                print("iter 2")
-                GaussianProcess_detrend(self, segments=segments, mask_flare=True, mask_transit=mask_transit, mask_outlier=True)
-        else:
-            print("Rotation not found.")
-            # if iter_detrend:
-            #     find_flare(self, find_transit=mask_transit)
-            #     print("iter 2")
-            #     Median_detrend(self, mask_flare=False, mask_transit=False)
-        print("Detrending completed.")
-
-    def detrend_3(self, segments=None, iter_detrend=True, mask_transit=True):
+    def detrend(self, iter_detrend=True, mask_transit=True):
         """
         Detrends lightcurve, adaptive iteration of GP.
 
@@ -364,8 +326,6 @@ class TESSLC:
 
         Parameters
         ----------
-        segments : list, optional
-            Segments to detrend, by default None and it'll detrend all the segments.
         iter_detrend : bool, optional
             If True iterative detrending will be performed using the flare masked method, by default True.
         mask_transit : bool, optional
@@ -385,16 +345,20 @@ class TESSLC:
         outlier_mask=flux_dev<1.5*mad
         gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=24, fbeg=1/14)
         fap=gls.FAP()
-        pmax=gls.pmax
-        pwr_lvl=gls.powerLevel(0.001)
+        fap_lvl = 0.01
+        # pmax=gls.pmax
+        # pwr_lvl=gls.powerLevel(0.001)
         period=gls.best['P']
 
-        if pmax<pwr_lvl:
+        # if pmax<pwr_lvl:
+        if fap > fap_lvl:
             rotation= False
-            print(f"PWR-DIFF::{pmax-pwr_lvl}")
+            # print(f"PWR-DIFF::{pmax-pwr_lvl}")
+            print(f"FAP::{fap}")
         else:
             rotation= True
-            print(f"PWR-DIFF::{pmax-pwr_lvl}")
+            # print(f"PWR-DIFF::{pmax-pwr_lvl}")
+            print(f"FAP::{fap}")
         if rotation:
             print("Rotation found.")
             self.star.prot=period
@@ -402,7 +366,7 @@ class TESSLC:
             print("Segmentation started.")
             self.segment_lc()
             print("Segmentation completed.")
-            GaussianProcess_detrend(self, mask_flare=True, mask_transit=mask_transit, mask_outlier=True, iter=True)
+            GaussianProcess_detrend(self, mask_flare=True, mask_transit=mask_transit, mask_outlier=True, iter=iter_detrend)
         else:
             print("Rotation not found.")
             # if iter_detrend:
@@ -620,7 +584,7 @@ class InjRec(TESSLC):
         print(f"Inj-Rec run::{run} started.")
         self.remove_flares()
         add_flares(self, N=10)
-        self.detrend_3()
+        self.detrend()
         self.findflares()
         self.flare_energy()
         recover_flares(self, run)

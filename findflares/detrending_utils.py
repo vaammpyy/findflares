@@ -14,7 +14,7 @@ from .flares_utils import find_flare, _include_tail, _merge_flares
 from .misc import MAD
 from .FINDflare_dport import FINDflare
 
-def RotationTerm_model(obj, model_mask, eval_mask):
+def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
     """
     Rotation term kernel for gaussian process modelling.
 
@@ -28,6 +28,8 @@ def RotationTerm_model(obj, model_mask, eval_mask):
         Mask for training the model, includes data points with q_flag = [0].
     eval_mask : ndarray
         Mask to evaluate the model, for detrending all the data points with q_flags i.e [0,512].
+    period_peak : float
+        GLS period of the entire lightcurve.
 
     Returns
     -------
@@ -40,7 +42,8 @@ def RotationTerm_model(obj, model_mask, eval_mask):
 
     x_eval=obj.lc.full['time'][eval_mask]
 
-    period_peak=get_period(obj, model_mask)
+    # period_peak=get_period(obj, model_mask)
+    print(f"GLS period: {period_peak}")
 
     with pm.Model() as model:
         # The mean flux of the time series
@@ -88,7 +91,7 @@ def RotationTerm_model(obj, model_mask, eval_mask):
 
         for k, v in map_soln.items():
             if k == 'period':
-                print(f"{k}: {v}")
+                print(f"GP {k}: {v}")
 
         return map_soln
 
@@ -115,7 +118,7 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
     iter : bool, optional
         When True GP runs iteratively for each segment, by default False.
     mad_th : float, optional
-        Sets the MAD factor for the outlier masking, by default 4.
+        Sets the MAD factor for the outlier masking, by default 6.
 
     Attributes
     ----------
@@ -144,7 +147,9 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
         print()
         print("------------------------------------")
         print(f"Segment: {seg}, started.")
+        print()
         model_mask=get_mask(obj, q_flags=q_flags, segments=[seg])
+        period_model_mask=get_mask(obj, q_flags=q_flags)
 
         if iter:
             rotation=True
@@ -153,7 +158,9 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
             mask_transit=False
             mask_outlier=True
             while rotation:
+                print("*********")
                 print(f"Iter::{i}")
+                print("*********")
                 # if mask_flare:
                 #     flare_mask=obj.lc.flare['mask']
                 #     if flare_mask.size==0:
@@ -164,9 +171,11 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 #     comb_model_mask = model_mask
 
                 comb_model_mask = model_mask
+                comb_period_model_mask = period_model_mask
                 if mask_transit:
                     transit_mask=obj.lc.transit['mask']
                     comb_model_mask = transit_mask & comb_model_mask
+                    comb_period_model_mask = transit_mask & comb_period_model_mask
                 
                 if mask_outlier:
                     flux=obj.lc.full['flux']
@@ -179,9 +188,11 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                     else:
                         outlier_mask=flux_dev<mad_th*mad
                     comb_model_mask = outlier_mask & comb_model_mask
+                    comb_period_model_mask = outlier_mask & comb_period_model_mask
 
+                period_peak=get_period(obj, comb_period_model_mask)
                 eval_mask=get_mask(obj, segments=[seg])
-                map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask)
+                map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask, period_peak=period_peak)
 
                 time=obj.lc.full['time'][eval_mask]
                 flux_detrended=obj.lc.full['flux'][eval_mask]-map_soln['pred']
@@ -229,21 +240,24 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
 
                 gls=Gls(((time[combined_mask], flux_detrended[combined_mask], flux_err[combined_mask])), fend=4, fbeg=1/14)
                 fap=gls.FAP()
-                pmax=gls.pmax
-                pwr_lvl=gls.powerLevel(0.001)
+                fap_lvl = 0.01
+                # pmax=gls.pmax
+                # pwr_lvl=gls.powerLevel(0.001)
                 period=gls.best['P']
                 mask_flare=True
                 mask_transit=True
                 mask_outlier=True
-                if pmax>pwr_lvl:
-                    print(f"PWR-DIFF::{pmax-pwr_lvl}, Period::{period}, rotation found.")
+                # if pmax>pwr_lvl:
+                #     print(f"PWR-DIFF::{pmax-pwr_lvl}, Period::{period}, rotation found.")
+                if fap < fap_lvl:
+                    print(f"FAP::{fap}, Residual period::{period}, rotation found.\n")
                     find_flare(obj, find_transit=mask_transit)
                     if i>=3:
                         rotation= False
                     else:
                         rotation= True
                 else:
-                    print(f"PWR-DIFF::{pmax-pwr_lvl}, rotation not found.")
+                    print(f"FAP::{fap}, rotation not found.\n")
                     rotation= False
 
                 # fig=plt.figure(figsize=(20,10))
@@ -276,12 +290,15 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
             if mask_flare and len(obj.lc.flare['mask'])>0:
                 flare_mask=obj.lc.flare['mask']
                 comb_model_mask = flare_mask & model_mask
+                comb_period_model_mask = flare_mask & period_model_mask
             else:
                 comb_model_mask = model_mask
+                comb_period_model_mask = period_model_mask
 
             if mask_transit:
                 transit_mask=obj.lc.transit['mask']
                 comb_model_mask = transit_mask & comb_model_mask
+                comb_period_model_mask = transit_mask & comb_period_model_mask
 
             if mask_outlier:
                 flux=obj.lc.full['flux']
@@ -291,9 +308,11 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 flux_dev=abs(flux-mean)
                 outlier_mask=flux_dev<mad_th*mad
                 comb_model_mask = outlier_mask & comb_model_mask
+                comb_period_model_mask = outlier_mask & comb_period_model_mask
 
+            period_peak=get_period(obj, comb_period_model_mask)
             eval_mask=get_mask(obj, segments=[seg])
-            map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask)
+            map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask, period_peak=period_peak)
 
             lc_detrended['time']= np.append(lc_detrended['time'],obj.lc.full['time'][eval_mask])
             lc_detrended['flux']= np.append(lc_detrended['flux'],obj.lc.full['flux'][eval_mask]-map_soln['pred'])

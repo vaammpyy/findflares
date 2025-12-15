@@ -66,7 +66,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                     except ConnectionError:
                         print("ConnectionError, failed to connect to the server.")
                         continue
-                    lc.detrend_3()
+                    lc.detrend()
                     lc.findflares()
                     lc.flare_energy()
                     if injrec:
