@@ -82,7 +82,8 @@ class TESSLC:
                      "amplitude":, [e/s]
                      "duration":, [s]
                      "equi_duration":, [s]
-                     "energy":}
+                     "energy":,
+                     "spot_amplitude":}
     
     Class Attributes
     ----------------
@@ -115,7 +116,8 @@ class TESSLC:
                      "amplitude":[],
                      "duration":[],
                      "equi_duration":[],
-                     "energy":[]}
+                     "energy":[],
+                     "spot_amplitude":[]}
 
         try:
             os.mkdir(self.dir)
@@ -187,6 +189,10 @@ class TESSLC:
             prot : float
                 Period of rotation of the star, as calculated by
                 peak of the GLS, None if star is not rotating.
+            prot_GP : list 
+                Period of rotation of the star, as calculated by
+                GP model, None if star is not rotating.
+                Each entry represent the GP period of each segment.
             dist : float
                 Distance of the star cross-matched with GAIA DR3.
             """
@@ -196,6 +202,7 @@ class TESSLC:
             self.rad=None
             self.tess_mag=None
             self.prot=None
+            self.prot_GP=[]
             self.dist=None
         
     class INST:

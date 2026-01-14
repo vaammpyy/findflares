@@ -92,6 +92,7 @@ def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
         for k, v in map_soln.items():
             if k == 'period':
                 print(f"GP {k}: {v}")
+                obj.star.prot_GP.append(v)
 
         return map_soln
 
