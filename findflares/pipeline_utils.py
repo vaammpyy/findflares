@@ -35,9 +35,9 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
     """
     print(f"RE-RUN::{redo}")
     print(f"Inj-Rec::{injrec}")
-    print("Pipeline Started.")
+    print("STATUS::STARTED")
     print("###################")
-    print(f"TIC {tic}")
+    print(f"META::TIC={tic}")
     cad_list=[20, 120]
     print(f"Searching for observations with CADENCE: {cad_list}")
     try:
@@ -50,10 +50,10 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                 TIC, sector, cad = result
                 # checking if the pipeline has already run or not
                 if os.path.isfile(f"{data_dir}/{TIC}/{sector}_{cad}.pkl") and redo==False:
-                    print(f"Sector {sector}, Cadence {cad}")
+                    print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}")
                     print("Already exists.")
                 else:
-                    print(f"Sector {sector}, Cadence {cad}")
+                    print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}")
                     # pipeline(TIC, sector, cad)
                     print("****************")
                     lc=TESSLC(tic, data_dir+"/"+str(TIC))
@@ -87,7 +87,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         lc.plot(mode="model_overlay", save_fig=True)
                         lc.pickleObj()
                     print("****************")
-                    print("Pipeline Completed.")
+                    print("STATUS::COMPLETED")
         else:
             print("No data found!")
     except HTTPError:

@@ -272,20 +272,20 @@ class TESSLC:
         clean : bool, optional
             Set to True to clean the lightcurve, by default False.
         """
-        print("Downloading started.")
+        print("STEP::DOWNLOAD::START")
         if cadence == None:
             get_lightcurve(self, sector=sector, mission=mission, author=author)
         else: 
             get_lightcurve(self, cadence=cadence, sector=sector, mission=mission, author=author)
-        print("Downloading completed.")
+        print("STEP::DOWNLOAD::END")
         if clean:
-            print("Cleaning started.")
+            print("STEP::CLEANING::START")
             self.clean_lc()
-            print("Cleaning completed.")
+            print("STEP::CLEANING::END")
         if segment:
-            print("Segmentation started.")
+            print("STEP::SEGMENTATION::START")
             self.segment_lc()
-            print("Segmentation completed.")
+            print("STEP::SEGMENTATION::END")
     
     def search_lc(self,cadence=20, mission="TESS", author='SPOC'):
         """
@@ -338,7 +338,7 @@ class TESSLC:
         mask_transit : bool, optional
             If True then in the second iteration of detrending process transits will be masked, by default True.
         """
-        print("Detrending started.")
+        print("STEP::DETREND::START")
         Median_detrend(self)
 
         #checking for rotation
@@ -380,7 +380,7 @@ class TESSLC:
             #     find_flare(self, find_transit=mask_transit)
             #     print("iter 2")
             #     Median_detrend(self, mask_flare=False, mask_transit=False)
-        print("Detrending completed.")
+        print("STEP::DETREND:START")
     
     def findflares(self):
         """
