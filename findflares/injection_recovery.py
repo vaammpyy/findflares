@@ -37,7 +37,8 @@ def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1")
                         "ampl":inj_dict['ampl'][inj_index],
                         "fwhm":inj_dict['fwhm'][inj_index],
                         "ed":inj_dict['ed'][inj_index],
-                        "energy":inj_dict['energy'][inj_index]},
+                        "energy":inj_dict['energy'][inj_index],
+                        "spot_amplitude":inj_dict["spot_amplitude"][inj_index]},
             "recovered":{"t_start":rec_dict['t_start'][rec_index],
                         "t_stop":rec_dict["t_stop"][rec_index],
                         "i_start":rec_dict['i_start'][rec_index],
@@ -45,7 +46,8 @@ def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1")
                         "amplitude":rec_dict['amplitude'][rec_index],
                         "duration":rec_dict["amplitude"][rec_index],
                         "equi_duration":rec_dict['equi_duration'][rec_index],
-                        "energy":rec_dict['energy'][rec_index]},
+                        "energy":rec_dict['energy'][rec_index],
+                        "spot_amplitude":rec_dict["spot_amplitude"][rec_index]},
             "flag":flag
         }
     elif inj_index==None:
@@ -58,7 +60,8 @@ def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1")
                         "amplitude":rec_dict['amplitude'][rec_index],
                         "duration":rec_dict["amplitude"][rec_index],
                         "equi_duration":rec_dict['equi_duration'][rec_index],
-                        "energy":rec_dict['energy'][rec_index]},
+                        "energy":rec_dict['energy'][rec_index],
+                        "spot_amplitude":rec_dict["spot_amplitude"][rec_index]},
             "flag":flag
         }
     elif rec_index==None:
@@ -69,7 +72,8 @@ def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1")
                         "ampl":inj_dict['ampl'][inj_index],
                         "fwhm":inj_dict['fwhm'][inj_index],
                         "ed":inj_dict['ed'][inj_index],
-                        "energy":inj_dict['energy'][inj_index]},
+                        "energy":inj_dict['energy'][inj_index],
+                        "spot_amplitude":inj_dict["spot_amplitude"][inj_index]},
             "recovered":{},
             "flag":flag
         }
@@ -324,11 +328,34 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             injected_hist=np.histogram(injected_energy, bins=bin_edges)
             recovered_hist=np.histogram(recovered_energy, bins=bin_edges)
 
-            fp_frac=recovered_hist[0]/injected_hist[0]
+            rec_frac_erg=recovered_hist[0]/injected_hist[0]
 
             fig=plt.figure(figsize=(6,6))
-            plt.bar(bin_edges[:-1], fp_frac, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
+            plt.bar(bin_edges[:-1], rec_frac_erg, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
             plt.xlabel("log10(Energy) (ergs)", fontsize=14)
+            plt.ylabel("Fractional Detection", fontsize=14)
+    
+    if mode=="rec_frac_spot_amplitude":
+            fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+            mask_rec=get_ir_mask(flags=flags, mode=['rec'])
+            mask_inj=get_ir_mask(flags=flags, mode=['inj'])
+
+            injected=np.array(injrec)[mask_inj]
+            recovered=np.array(injrec)[mask_rec]
+
+            injected_spot_amp=np.log10(np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))]))
+            recovered_spot_amp=np.log10(np.array([recovered[i]["injected"]['spot_amplitude'] for i in range(len(recovered))]))
+
+            bin_edges=np.linspace(-1,1,10)
+
+            injected_hist=np.histogram(injected_spot_amp, bins=bin_edges)
+            recovered_hist=np.histogram(recovered_spot_amp, bins=bin_edges)
+
+            rec_frac_erg=recovered_hist[0]/injected_hist[0]
+
+            fig=plt.figure(figsize=(6,6))
+            plt.bar(bin_edges[:-1], rec_frac_erg, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
+            plt.xlabel("Spot Amplitude", fontsize=14)
             plt.ylabel("Fractional Detection", fontsize=14)
 
     if save_fig:

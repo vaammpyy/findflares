@@ -82,7 +82,7 @@ class TESSLC:
                      "amplitude":, [e/s]
                      "duration":, [s]
                      "equi_duration":, [s]
-                     "energy":,
+                     "energy":, [ergs]
                      "spot_amplitude":}
     
     Class Attributes
@@ -430,7 +430,8 @@ class TESSLC:
                         "amplitude":, [e/s]
                         "duration":, [s]
                         "equi_duration":, [s]
-                        "energy": [cgs]}
+                        "energy": [ergs],
+                        "spot_amplitude": }
         """
         self.flares={"t_start":[],
                      "t_peak":[],
@@ -440,10 +441,12 @@ class TESSLC:
                      "amplitude":[],
                      "duration":[],
                      "equi_duration":[],
-                     "energy":[]}
+                     "energy":[],
+                     "spot_amplitude":[]}
         get_flare_param(self)
         get_ED(self)
         get_flare_energies(self)
+        get_flare_spot_amplitude(self)
 
     def pickleObj(self):
         """
@@ -493,7 +496,8 @@ class InjRec(TESSLC):
                         "amplitude":, [e/s]
                         "duration":, [s]
                         "equi_duration":, [s]
-                        "energy":}
+                        "energy":, [ergs]
+                        "spot_amplitude":}
         injection : dict
             Stores all injected flare parameters.
             self.injection={'t_peak':[],
@@ -502,7 +506,8 @@ class InjRec(TESSLC):
                             'ampl': [],
                             'fwhm': [],
                             'ed':[],
-                            'energy':[]}
+                            'energy':[],
+                            "spot_amplitude";[]}
         injrec : array
             Array of injection recovery dictionaries.
             [{"injected":{"t_peak":,
@@ -511,14 +516,16 @@ class InjRec(TESSLC):
                           "ampl":,
                           "fwhm":,
                           "ed":,
-                          "energy":},
+                          "energy":,
+                          "spot_amplitude":},
             "recovered":{"t_start":,
                          "t_stop":,
                          "i_start":,
                          "amplitude":,
                          "duration":,
                          "equi_duration":,
-                         "energy":},
+                         "energy":,
+                         "spot_amplitude":},
             "flag":}]
         
         Class Attributes

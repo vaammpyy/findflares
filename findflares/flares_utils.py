@@ -549,6 +549,86 @@ def replace_flares_w_gaussian_noise_and_clean_attr(obj):
                     "equi_duration":[],
                     "energy":[]}
 
+def _spot_amplitude(flux_t_peak, flux_max, flux_min):
+    """
+    Calculates the spot amplitude.
+
+    Calculates the spot amplitude of a flare using the formula mentioned in 
+    Zhang et al. 2025. It's a value between -1 and 1, where 1 represents point
+    near the peak of lightcurve and -1 represents point near the trough of the
+    lightcurve.
+
+    Parameters
+    ----------
+    flux_t_peak : float
+        Flux of the rotation model at flare peak time.
+    flux_max : float
+        Maximum value of flux in the local window.
+    flux_min : float
+        Minimum value of flux in the local window.
+
+    Returns
+    -------
+    spot_amplitude : float
+        Spot amplitude of the flare.
+    """
+    return (2*(flux_t_peak - flux_min)/(flux_max - flux_min) - 1)[0]
+
+def get_flare_spot_amplitude(obj, n=4):
+    """
+    Calculates the spot amplitude of all the detected flares.
+
+    Calculates the spot amplitude for all the detected flares of the star that
+    are found to have rotation period.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS Lightcurve object.
+    n : int
+        Width of the local window over which spot amplitude is calculated,
+        by default 4. (Using the value from the Zhang's paper.)
+
+    Attributes
+    ----------
+    obj.flares["spot_amplitude"] : list
+        List of spot amplitude if the star is found to be rotating, else np.nan.
+    """
+    # TESSLC = ff.loadpickle_path(pkl)
+    TESSLC = obj
+
+    n_flare=TESSLC.flares["t_start"]
+
+    if TESSLC.star.prot is None:
+        TESSLC.flare["spot_amplitude"].append([np.nan]*n_flares)
+
+
+    flare_t_peak = TESSLC.flares["t_peak"]
+    time = TESSLC.lc.full["time"]
+    flux = TESSLC.lc.model["flux"]
+
+    TESSLC.flares["spot_amplitude"] = []
+    
+    period = TESSLC.star.prot
+
+    window = n*period
+
+    spot_ampl = []
+    
+    for i in range(len(n_flare)):
+        t_peak = TESSLC.flares["t_peak"][i]
+        arg_t_peak = np.where(time == t_peak)[0]
+
+        mask = np.where(np.absolute(time-t_peak)<=window/2)[0]
+
+        flux_t_peak = flux[arg_t_peak]
+        flux_max = max(flux[mask])
+        flux_min = min(flux[mask])
+
+        spot_amp = _spot_amplitude(flux_t_peak, flux_max, flux_min)
+
+        TESSLC.flares["spot_amplitude"].append(spot_amp)
+
 def add_flares(obj, N=10):
     """
     Adds flares to the lightcurve.
@@ -577,7 +657,8 @@ def add_flares(obj, N=10):
                     'ampl': [],
                     'fwhm': [],
                     'ed':[],
-                    'energy':[]}
+                    'energy':[],
+                    'spot_amplitude':[]}
 
     time=obj.lc.full['time']
     dist_cm=obj.star.dist.to(u.cm)
@@ -636,13 +717,25 @@ def add_flares(obj, N=10):
         tot_electron_energy = energy_per_electron * e_count
         # calculates the energy, 86.6 cm2 is aperture area.
         energy = 4 * np.pi * dist_cm**2 * tot_electron_energy/86.6
-        
+
         obj.injection['t_peak'].append(t_peak[i])
         obj.injection['i_start'].append(start)
         obj.injection['i_stop'].append(stop)
         obj.injection['ampl'].append(ampl)
         obj.injection['fwhm'].append(10**log10_fwhm)
         obj.injection['energy'].append(energy.value)
+
+        # Injected flare spot amplitude.
+        n = 4 # local window
+        flare_window_mask = np.where(np.absolute(time-t_peak[i])<=n/2)
+
+        flux_max = max(model_flux[flare_window_mask])
+        flux_min = min(model_flux[flare_window_mask])
+        flux_t_peak = model_flux[np.argwhere(time==arr_time_peak[i])[0]]
+
+        sa=(2*(flux_t_peak - flux_min)/(flux_max - flux_min) - 1)
+
+        obj.injection["spot_amplitude"].append(sa)
     
     obj.lc.full['flux']+=net_flares_lc
     print("Flare addition completed.")
