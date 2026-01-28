@@ -166,7 +166,7 @@ def _extract_parameters(TESSLC_path):
         
 def get_compiled_catalog(flare_dir, flare_catalog_file_path, star_catalog_file_path):
     """
-    This module creates the flare and stellar properties of the successful run
+    This module creates the flare and stellar properties of the successful run.
     """
     pickle_path_list = glob(f"{flare_dir}/*/*.pkl")
 

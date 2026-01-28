@@ -609,7 +609,7 @@ def get_flare_spot_amplitude(obj, n=4):
 
     TESSLC.flares["spot_amplitude"] = []
     
-    period = TESSLC.star.prot
+    period = np.average(TESSLC.star.prot_GP)
 
     window = n*period
 
@@ -725,17 +725,20 @@ def add_flares(obj, N=10):
         obj.injection['fwhm'].append(10**log10_fwhm)
         obj.injection['energy'].append(energy.value)
 
-        # Injected flare spot amplitude.
-        n = 4 # local window
-        flare_window_mask = np.where(np.absolute(time-t_peak[i])<=n/2)
+        # # Injected flare spot amplitude.
+        # n = 4 
+        # period = np.average(obj.star.prot_GP)
+        # window = n*period
+        # flare_window_mask = np.where(np.absolute(time-t_peak[i])<=window/2)
 
-        flux_max = max(model_flux[flare_window_mask])
-        flux_min = min(model_flux[flare_window_mask])
-        flux_t_peak = model_flux[np.argwhere(time==arr_time_peak[i])[0]]
+        # flux_max = max(model_flux[flare_window_mask])
+        # flux_min = min(model_flux[flare_window_mask])
+        # flux_t_peak = model_flux[np.where(time==arr_time_peak[i])[0]]
 
-        sa=(2*(flux_t_peak - flux_min)/(flux_max - flux_min) - 1)
+        # # sa=(2*(flux_t_peak - flux_min)/(flux_max - flux_min) - 1)
+        # sa=_spot_amplitude(flux_t_peak=flux_t_peak, flux_max=flux_max, flux_min=flux_min)
 
-        obj.injection["spot_amplitude"].append(sa)
+        # obj.injection["spot_amplitude"].append(sa)
     
     obj.lc.full['flux']+=net_flares_lc
     print("Flare addition completed.")

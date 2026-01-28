@@ -3,6 +3,7 @@ import numpy as np
 import fnmatch
 
 from .imports import *
+from .flares_utils import _spot_amplitude
 
 def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1"):
     """
@@ -40,6 +41,7 @@ def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1")
                         "energy":inj_dict['energy'][inj_index],
                         "spot_amplitude":inj_dict["spot_amplitude"][inj_index]},
             "recovered":{"t_start":rec_dict['t_start'][rec_index],
+                        "t_peak":rec_dict["t_peak"][rec_index],
                         "t_stop":rec_dict["t_stop"][rec_index],
                         "i_start":rec_dict['i_start'][rec_index],
                         "i_stop":rec_dict["i_stop"][rec_index],
@@ -54,6 +56,7 @@ def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1")
         inj_rec_dict={
             "injected":{},
             "recovered":{"t_start":rec_dict['t_start'][rec_index],
+                        "t_peak":rec_dict["t_peak"][rec_index],
                         "t_stop":rec_dict["t_stop"][rec_index],
                         "i_start":rec_dict['i_start'][rec_index],
                         "i_stop":rec_dict["i_stop"][rec_index],
@@ -133,6 +136,28 @@ def recover_flares(obj, run):
         Array of injection recovery dictionaries.
     """
     print("Flare recovery started.")
+
+    # Injected flare spot amplitude.
+    time=obj.lc.full['time']
+    model_flux=obj.lc.model['flux']
+    cadence = obj.inst.cadence
+
+    n = 4 
+    period = np.average(obj.star.prot_GP)
+    window = n*period
+
+    for i, t_peak in enumerate(obj.injection["t_peak"]):
+        flare_window_mask = np.where(np.absolute(time-t_peak)<=window/2)
+
+        flux_max = max(model_flux[flare_window_mask])
+        flux_min = min(model_flux[flare_window_mask])
+        flux_t_peak = model_flux[np.where(np.absolute(time-t_peak)<cadence)[0]]
+
+    # sa=(2*(flux_t_peak - flux_min)/(flux_max - flux_min) - 1)
+        sa=_spot_amplitude(flux_t_peak=flux_t_peak, flux_max=flux_max, flux_min=flux_min)
+
+        obj.injection["spot_amplitude"].append(sa)
+
     inj_dict=copy.copy(obj.injection)
     rec_dict=copy.copy(obj.flares)
 
@@ -169,6 +194,59 @@ def recover_flares(obj, run):
             continue
         flag=f"{run:02d}.{0:02d}.{0:02d}"
         log_injection_recovery(obj,inj_index=k,flag=flag)
+    
+#     # plotting the injected and the recovered flares.
+#     fig, ax = plt.subplots(2,1, sharex=True)
+#     injected_t_peak = t_peak_Inj
+#     recovered_t_peak = rec_dict["t_peak"]
+
+#     time = obj.lc.model["time"]
+#     model_flux = obj.lc.model["flux"]
+#     raw_flux = obj.lc.full["flux"]
+
+
+#     ax[0].scatter(time, raw_flux, s=0.5, color = 'black')
+#     ax[0].plot(time, model_flux, color='magenta')
+#     # ax[0].axvline(injected_t_peak, 0.5*min(model_flux), 1.5*max(model_flux), color='blue')
+
+#     colors = [
+#     "tab:blue",
+#     "tab:orange",
+#     "tab:green",
+#     "tab:red",
+#     "tab:purple",
+#     "tab:brown",
+#     "tab:pink",
+#     "tab:gray",
+#     "tab:olive",
+#     "tab:cyan",
+# ]
+
+#     for i,t in enumerate(injected_t_peak):
+#         sa=inj_dict["spot_amplitude"][i]
+#         ax[0].axvline(t, label=sa, color=colors[i])
+#         ax[0].text(t+0.05, 0.5*max(model_flux), f"{sa}", fontsize=14,
+#                     zorder = 10,
+#                     clip_on = False)
+#     ax[0].set_ylabel("Flux")
+
+#     ax[1].scatter(time, raw_flux, s=0.5, color = 'black')
+#     ax[1].plot(time, model_flux, color='magenta')
+#     # ax[1].axvline(recovered_t_peak, 0.5*min(model_flux), 1.5*max(model_flux), color='red')
+    
+#     for i, t in enumerate(recovered_t_peak):
+#         sa=rec_dict["spot_amplitude"][i]
+#         ax[1].axvline(t, label=sa, color=colors[i])
+#         ax[1].text(t+0.05, 0.5*max(model_flux), f"{sa}", fontsize=14,
+#                     zorder = 10,
+#                     clip_on = False)
+#     ax[1].set_ylabel("Flux")
+#     ax[1].set_xlabel("Time")
+
+#     ax[0].legend()
+#     ax[1].legend()
+#     plt.show()
+
     print("Flare recovery completed.")
 
 def get_ir_mask(flags, mode=None):
@@ -343,8 +421,8 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             injected=np.array(injrec)[mask_inj]
             recovered=np.array(injrec)[mask_rec]
 
-            injected_spot_amp=np.log10(np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))]))
-            recovered_spot_amp=np.log10(np.array([recovered[i]["injected"]['spot_amplitude'] for i in range(len(recovered))]))
+            injected_spot_amp=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
+            recovered_spot_amp=np.array([recovered[i]["injected"]['spot_amplitude'] for i in range(len(recovered))])
 
             bin_edges=np.linspace(-1,1,10)
 
