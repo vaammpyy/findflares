@@ -300,7 +300,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
     mode : str
         Plotting mode, 'rec_frac', 'erg_comp', 'fp', 'rec_frac_erg'
     save_fig : bool, optional
-        If True plots are to saved to a file, by default False.
+        If True plots are to be saved to a file, by default False.
     """
     injrec=obj.injrec
     flags=[injrec[i]['flag'] for i in range(len(injrec))]
@@ -310,7 +310,9 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             mask_rec=get_ir_mask(flags=flags, mode=['rec'])
             mask_inj=get_ir_mask(flags=flags, mode=['inj'])
 
-            recovered=np.array(injrec)[mask_rec]
+            mask = mask_inj & mask_rec
+
+            recovered=np.array(injrec)[mask]
             injected=np.array(injrec)[mask_inj]
 
             recovered_fwhm=np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))])
@@ -335,6 +337,76 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             plt.ylabel("Ampl [ct/s]", fontsize=14)
             plt.title("Recovery Fraction", fontsize=16)
             plt.xscale('log')
+            plt.yscale('log')
+            plt.colorbar()
+
+    if mode=='rec_frac_sa_ampl':
+            fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+            mask_rec=get_ir_mask(flags=flags, mode=['rec'])
+            mask_inj=get_ir_mask(flags=flags, mode=['inj'])
+
+            mask = mask_inj & mask_rec
+
+            recovered=np.array(injrec)[mask]
+            injected=np.array(injrec)[mask_inj]
+
+            recovered_sa=np.array([recovered[i]["injected"]['spot_amplitude'] for i in range(len(recovered))])
+            recovered_ampl=np.array([recovered[i]["injected"]['ampl'] for i in range(len(recovered))])
+
+            injected_sa=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
+            injected_ampl=np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))])
+
+            recovered_hist2d=np.histogram2d(recovered_sa, recovered_ampl, bins=[np.linspace(-1,1,10), 10**np.linspace(1,4,10)])
+            injected_hist2d=np.histogram2d(injected_sa, injected_ampl, bins=[np.linspace(-1,1,10), 10**np.linspace(1,4,10)])
+
+            rec_frac=recovered_hist2d[0]/injected_hist2d[0]
+
+            xedges=injected_hist2d[1]
+            yedges=injected_hist2d[2]
+
+            fig=plt.figure(figsize=(8,8))
+            # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
+            #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+            plt.pcolormesh(np.linspace(-1,1,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+            plt.xlabel("sa", fontsize=14)
+            plt.ylabel("Ampl [ct/s]", fontsize=14)
+            plt.title("Recovery Fraction", fontsize=16)
+            # plt.xscale('log')
+            plt.yscale('log')
+            plt.colorbar()
+
+    if mode=='rec_frac_sa_fwhm':
+            fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+            mask_rec=get_ir_mask(flags=flags, mode=['rec'])
+            mask_inj=get_ir_mask(flags=flags, mode=['inj'])
+
+            mask = mask_inj & mask_rec
+
+            recovered=np.array(injrec)[mask]
+            injected=np.array(injrec)[mask_inj]
+
+            recovered_sa=np.array([recovered[i]["injected"]['spot_amplitude'] for i in range(len(recovered))])
+            recovered_fwhm=np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))])
+
+            injected_sa=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
+            injected_fwhm=np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))])
+
+            recovered_hist2d=np.histogram2d(recovered_sa, recovered_fwhm, bins=[np.linspace(-1,1,10), 10**np.linspace(1,3.5,10)])
+            injected_hist2d=np.histogram2d(injected_sa, injected_fwhm, bins=[np.linspace(-1,1,10), 10**np.linspace(1,3.5,10)])
+
+            rec_frac=recovered_hist2d[0]/injected_hist2d[0]
+
+            xedges=injected_hist2d[1]
+            yedges=injected_hist2d[2]
+
+            fig=plt.figure(figsize=(8,8))
+            # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
+            #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+            plt.pcolormesh(np.linspace(-1,1,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+            plt.xlabel("sa", fontsize=14)
+            plt.ylabel("FWHM [s]", fontsize=14)
+            plt.title("Recovery Fraction", fontsize=16)
+            # plt.xscale('log')
             plt.yscale('log')
             plt.colorbar()
 
@@ -395,8 +467,10 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             mask_rec=get_ir_mask(flags=flags, mode=['rec'])
             mask_inj=get_ir_mask(flags=flags, mode=['inj'])
 
+            mask = mask_inj & mask_rec
+
             injected=np.array(injrec)[mask_inj]
-            recovered=np.array(injrec)[mask_rec]
+            recovered=np.array(injrec)[mask]
 
             injected_energy=np.log10(np.array([injected[i]["injected"]['energy'] for i in range(len(injected))]))
             recovered_energy=np.log10(np.array([recovered[i]["injected"]['energy'] for i in range(len(recovered))]))
@@ -418,8 +492,10 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             mask_rec=get_ir_mask(flags=flags, mode=['rec'])
             mask_inj=get_ir_mask(flags=flags, mode=['inj'])
 
+            mask = mask_inj & mask_rec
+
             injected=np.array(injrec)[mask_inj]
-            recovered=np.array(injrec)[mask_rec]
+            recovered=np.array(injrec)[mask]
 
             injected_spot_amp=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
             recovered_spot_amp=np.array([recovered[i]["injected"]['spot_amplitude'] for i in range(len(recovered))])
