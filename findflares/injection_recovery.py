@@ -164,6 +164,7 @@ def recover_flares(obj, run):
     n_detected_flare=len(obj.flares['t_start'])
 
     t_peak_Inj=inj_dict['t_peak']
+    ampl_Inj=inj_dict["ampl"]
 
     detected_injections=[]
 
@@ -171,7 +172,11 @@ def recover_flares(obj, run):
         t_peak_rec=rec_dict['t_peak'][i]
         t_start=rec_dict['t_start'][i]
         t_stop=rec_dict['t_stop'][i]
-        mask=(t_peak_Inj>=t_start) & (t_peak_Inj<=t_stop)
+        ampl_rec=rec_dict["amplitude"][i]
+        # mask=(t_peak_Inj>=t_start) & (t_peak_Inj<=t_stop)
+        mask_t_peak=abs(t_peak_Inj-t_peak_rec)<0.0097 # 14 minutes in days, this value comes from Medina et al. 2020.
+        mask_ampl=abs(ampl_Inj-ampl_rec)/ampl_Inj<0.2 # amplitude within 20% of the injected amplitude, this value comes from Medina et al. 2020.
+        mask=mask_t_peak & mask_ampl
         index_array = np.nonzero(mask)[0]
         t_peak_diff=np.array(t_peak_Inj)-t_peak_rec
         sorted_order=np.argsort(t_peak_diff[index_array])
