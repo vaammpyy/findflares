@@ -447,10 +447,10 @@ def get_flare_energies(obj):
     ra=obj.star.ra
     dec=obj.star.dec
     dist_pc = None
-    try:
-        dist_pc=get_dist_gaia(ra, dec)
-    except HTTPError:
-        print("Distance not found, connection failed to the server.")
+    # try:
+    #     dist_pc=get_dist_gaia(ra, dec)
+    # except HTTPError:
+    #     print("Distance not found, connection failed to the server.")
     if dist_pc is None:
         dist_pc=get_dist_tess(TIC)
     elif dist_pc.value:
