@@ -30,6 +30,8 @@ def str2bool(v):
 
 parser.add_argument('-r','--rerun', type=str2bool, default=False, help='True to rerun the pipeline for already processed data.')
 
+parser.add_argument('-e','--calc_energy', type=str2bool, default=True, help='True to calculate flare energy.')
+
 parser.add_argument('-i', '--injrec',
                     type=int,
                     default=0,
@@ -52,9 +54,10 @@ parser.add_argument('-c', '--cadence',
 args = parser.parse_args()
 
 rerun=args.rerun
+calc_energy=args.calc_energy
 DATA_dir= args.datadir
 injrec=args.injrec
 input_sector=args.sector
 input_cadence=args.cadence
 
-tess_pipeline(args.tic, DATA_dir, rerun, injrec, input_cadence, input_sector)
+tess_pipeline(args.tic, DATA_dir, rerun, injrec, input_cadence, input_sector, calc_energy=calc_energy)

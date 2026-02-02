@@ -4,3 +4,4 @@ defaults.py
 ./tests/output/*
 !./tests/output/.gitkeep
 **/build/*
+generate_slurm_file.py

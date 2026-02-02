@@ -6,7 +6,7 @@ from time import time
 from findflares.lc_class import *
 from findflares.imports import *
 
-def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0):
+def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0, calc_energy=True):
     """
     Runs pipeline for TESS Lightcurves.
 
@@ -28,6 +28,8 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
     input_sector : int, optional
         Sector of the observation for analysis, by default value is 0
         pipeline runs over all avialable sectors.
+    calc_energy : bool, optional
+        If true then calculated energy of the flares, by default true.
     
     Output
     -------
@@ -68,7 +70,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         continue
                     lc.detrend()
                     lc.findflares()
-                    lc.flare_energy()
+                    lc.flare_energy(calc_energy=calc_energy)
                     if injrec:
                         print("Injection recovery test started.")
                         irec=InjRec(lc)

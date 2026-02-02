@@ -418,9 +418,14 @@ class TESSLC:
         """
         plot_lightcurve(self, mode=mode, q_flags=q_flags, segments=segments, show_flares=show_flares, show_transits=show_transits, save_fig=save_fig, injrec=injrec, injrec_run=injrec_run)
 
-    def flare_energy(self):
+    def flare_energy(self, calc_energy=True):
         """
         Evaluates flare energies and other relevant parameters.
+
+        Parameters
+        ----------
+        calc_energy : bool, optional
+            Calculated the energy of the flare if True, default is True.
 
         Attributes
         ----------
@@ -448,7 +453,8 @@ class TESSLC:
                      "spot_amplitude":[]}
         get_flare_param(self)
         get_ED(self)
-        get_flare_energies(self)
+        if calc_energy:
+            get_flare_energies(self)
         get_flare_spot_amplitude(self)
 
     def pickleObj(self):
