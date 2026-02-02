@@ -1,12 +1,10 @@
 import numpy as np
 from astroquery.gaia import Gaia
-from astroquery import conf
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.mast import Catalogs
 
 Gaia.TIMEOUT = 60
-conf.timeout=60
 
 def MAD(x):
     """
