@@ -731,7 +731,10 @@ def add_flares(obj, N=10):
         obj.injection['i_stop'].append(stop)
         obj.injection['ampl'].append(ampl)
         obj.injection['fwhm'].append(10**log10_fwhm)
-        obj.injection['energy'].append(energy.value)
+        if energy is not None:
+            obj.injection['energy'].append(energy.value)
+        else:
+            obj.injection['energy'].append(None)
 
         # # Injected flare spot amplitude.
         # n = 4 
