@@ -272,12 +272,15 @@ class TESSLC:
         clean : bool, optional
             Set to True to clean the lightcurve, by default False.
         """
+        download_time_start=time()
         print("STEP::DOWNLOAD::START", flush=True)
         if cadence == None:
             get_lightcurve(self, sector=sector, mission=mission, author=author)
         else: 
             get_lightcurve(self, cadence=cadence, sector=sector, mission=mission, author=author)
         print("STEP::DOWNLOAD::END", flush=True)
+        download_time_stop=time()
+        print(f"PIPELINE::DWNLDTIME::{download_time_stop-download_time_start:.2f}", flush=True)
         if clean:
             print("STEP::CLEANING::START", flush=True)
             self.clean_lc()

@@ -12,6 +12,7 @@ from celerite2.pymc import terms, GaussianProcess
 from requests.exceptions import HTTPError, ConnectionError
 import warnings
 import copy
+from time import time
 
 from .aflare import aflare, aflare1
 from .FINDflare_dport import FINDflare

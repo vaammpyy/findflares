@@ -3,3 +3,4 @@ defaults.py
 **/findflares.egg-info
 ./tests/output/*
 !./tests/output/.gitkeep
+**/build/*
