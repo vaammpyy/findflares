@@ -661,9 +661,12 @@ def add_flares(obj, N=10):
                     'spot_amplitude':[]}
 
     time=obj.lc.full['time']
-    dist_cm=obj.star.dist.to(u.cm)
     cadence=obj.inst.cadence
     model_flux=obj.lc.model['flux']
+    if obj.star.dist is not None:
+        dist_cm=obj.star.dist.to(u.cm)
+    else:
+        dist_cm=None
 
     arr_time_peak=np.array(sample(list(time), k=N))
     t_peak=arr_time_peak+np.random.uniform(low=-cadence,high=cadence, size=N)
@@ -704,21 +707,24 @@ def add_flares(obj, N=10):
         obj.injection['ed'].append(ed)
 
         #energy calculation of the flare
-        e_count=simpson(flares_lc[start:stop+1], x=time[start:stop+1])*24*3600
+        if dist_cm is not None:
+            e_count=simpson(flares_lc[start:stop+1], x=time[start:stop+1])*24*3600
 
-        lambda_mean=7452.64*u.angstrom
+            lambda_mean=7452.64*u.angstrom
 
-        h=const.h
-        c=const.c
+            h=const.h
+            c=const.c
 
-        h_cgs = h.to(u.erg * u.s)
-        c_cgs = c.to(u.cm / u.s)
-        energy_per_electron = h_cgs * c_cgs / lambda_mean.to(u.cm)
+            h_cgs = h.to(u.erg * u.s)
+            c_cgs = c.to(u.cm / u.s)
+            energy_per_electron = h_cgs * c_cgs / lambda_mean.to(u.cm)
 
-        # Calculate total electron energy and energy
-        tot_electron_energy = energy_per_electron * e_count
-        # calculates the energy, 86.6 cm2 is aperture area.
-        energy = 4 * np.pi * dist_cm**2 * tot_electron_energy/86.6
+            # Calculate total electron energy and energy
+            tot_electron_energy = energy_per_electron * e_count
+            # calculates the energy, 86.6 cm2 is aperture area.
+            energy = 4 * np.pi * dist_cm**2 * tot_electron_energy/86.6
+        else:
+            energy = None
 
         obj.injection['t_peak'].append(t_peak[i])
         obj.injection['i_start'].append(start)
