@@ -146,6 +146,22 @@ def recover_flares(obj, run):
     period = np.average(obj.star.prot_GP)
     window = n*period
 
+    # fig = plt.figure(figsize=(15,10))
+    # plt.scatter(obj.lc.full['time'], obj.lc.full['flux'], s=0.05, color='black')
+
+#     colors = [
+#     "tab:blue",
+#     "tab:orange",
+#     "tab:green",
+#     "tab:red",
+#     "tab:purple",
+#     "tab:brown",
+#     "tab:pink",
+#     "tab:gray",
+#     "tab:olive",
+#     "tab:cyan",
+# ]
+
     for i, t_peak in enumerate(obj.injection["t_peak"]):
         flare_window_mask = np.where(np.absolute(time-t_peak)<=window/2)
 
@@ -155,8 +171,12 @@ def recover_flares(obj, run):
 
     # sa=(2*(flux_t_peak - flux_min)/(flux_max - flux_min) - 1)
         sa=_spot_amplitude(flux_t_peak=flux_t_peak, flux_max=flux_max, flux_min=flux_min)
+        # plt.vlines(t_peak, ymax= max(obj.lc.full['flux']), ymin=min(obj.lc.full['flux']), label=sa, color=colors[i])
 
         obj.injection["spot_amplitude"].append(sa)
+    
+    # plt.legend()
+    # plt.show()
 
     inj_dict=copy.copy(obj.injection)
     rec_dict=copy.copy(obj.flares)
@@ -361,8 +381,8 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             injected_sa=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
             injected_ampl=np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))])
 
-            recovered_hist2d=np.histogram2d(recovered_sa, recovered_ampl, bins=[np.linspace(-1,1,10), 10**np.linspace(1,4,10)])
-            injected_hist2d=np.histogram2d(injected_sa, injected_ampl, bins=[np.linspace(-1,1,10), 10**np.linspace(1,4,10)])
+            recovered_hist2d=np.histogram2d(recovered_sa, recovered_ampl, bins=[np.linspace(-1,1,20), 10**np.linspace(1,4,10)])
+            injected_hist2d=np.histogram2d(injected_sa, injected_ampl, bins=[np.linspace(-1,1,20), 10**np.linspace(1,4,10)])
 
             rec_frac=recovered_hist2d[0]/injected_hist2d[0]
 
@@ -372,7 +392,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             fig=plt.figure(figsize=(8,8))
             # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
             #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
-            plt.pcolormesh(np.linspace(-1,1,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+            plt.pcolormesh(np.linspace(-1,1,20), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
             plt.xlabel("sa", fontsize=14)
             plt.ylabel("Ampl [ct/s]", fontsize=14)
             plt.title("Recovery Fraction", fontsize=16)
@@ -396,8 +416,8 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             injected_sa=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
             injected_fwhm=np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))])
 
-            recovered_hist2d=np.histogram2d(recovered_sa, recovered_fwhm, bins=[np.linspace(-1,1,10), 10**np.linspace(1,3.5,10)])
-            injected_hist2d=np.histogram2d(injected_sa, injected_fwhm, bins=[np.linspace(-1,1,10), 10**np.linspace(1,3.5,10)])
+            recovered_hist2d=np.histogram2d(recovered_sa, recovered_fwhm, bins=[np.linspace(-1,1,20), 10**np.linspace(1,3.5,10)])
+            injected_hist2d=np.histogram2d(injected_sa, injected_fwhm, bins=[np.linspace(-1,1,20), 10**np.linspace(1,3.5,10)])
 
             rec_frac=recovered_hist2d[0]/injected_hist2d[0]
 
@@ -407,7 +427,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             fig=plt.figure(figsize=(8,8))
             # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
             #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
-            plt.pcolormesh(np.linspace(-1,1,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+            plt.pcolormesh(np.linspace(-1,1,20), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
             plt.xlabel("sa", fontsize=14)
             plt.ylabel("FWHM [s]", fontsize=14)
             plt.title("Recovery Fraction", fontsize=16)
@@ -505,7 +525,7 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             injected_spot_amp=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
             recovered_spot_amp=np.array([recovered[i]["injected"]['spot_amplitude'] for i in range(len(recovered))])
 
-            bin_edges=np.linspace(-1,1,10)
+            bin_edges=np.linspace(-1,1,20)
 
             injected_hist=np.histogram(injected_spot_amp, bins=bin_edges)
             recovered_hist=np.histogram(recovered_spot_amp, bins=bin_edges)
@@ -516,6 +536,28 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             plt.bar(bin_edges[:-1], rec_frac_erg, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
             plt.xlabel("Spot Amplitude", fontsize=14)
             plt.ylabel("Fractional Detection", fontsize=14)
+
+    if mode=="inj_spot_amplitude":
+            fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+            mask_rec=get_ir_mask(flags=flags, mode=['rec'])
+            mask_inj=get_ir_mask(flags=flags, mode=['inj'])
+
+            mask = mask_inj
+
+            injected=np.array(injrec)[mask_inj]
+
+            injected_spot_amp=np.array([injected[i]["injected"]['spot_amplitude'] for i in range(len(injected))])
+
+            bin_edges=np.linspace(-1,1,20)
+
+            injected_hist=np.histogram(injected_spot_amp, bins=bin_edges)
+
+            rec_frac_erg=injected_hist[0]
+
+            fig=plt.figure(figsize=(6,6))
+            plt.bar(bin_edges[:-1], rec_frac_erg, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
+            plt.xlabel("Injected Spot Amplitude", fontsize=14)
+            plt.ylabel("#", fontsize=14)
 
     if save_fig:
             plt.savefig(f"{obj.dir}/{fName}", dpi=100)

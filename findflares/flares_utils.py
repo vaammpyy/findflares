@@ -447,10 +447,10 @@ def get_flare_energies(obj):
     ra=obj.star.ra
     dec=obj.star.dec
     dist_pc = None
-    # try:
-    #     dist_pc=get_dist_gaia(ra, dec)
-    # except HTTPError:
-    #     print("Distance not found, connection failed to the server.")
+    try:
+        dist_pc=get_dist_gaia(ra, dec)
+    except HTTPError:
+        print("Distance not found, connection failed to the server.")
     if dist_pc is None:
         dist_pc=get_dist_tess(TIC)
     elif dist_pc.value:
@@ -669,7 +669,7 @@ def add_flares(obj, N=10):
         dist_cm=None
 
     arr_time_peak=np.array(sample(list(time), k=N))
-    t_peak=arr_time_peak+np.random.uniform(low=-cadence,high=cadence, size=N)
+    t_peak=arr_time_peak+np.random.uniform(low=-cadence/2,high=cadence/2, size=N)
     net_flares_lc=np.zeros(len(time))
     for i in range(len(t_peak)):
         #fwhm is in seconds
@@ -752,6 +752,11 @@ def add_flares(obj, N=10):
         # obj.injection["spot_amplitude"].append(sa)
     
     obj.lc.full['flux']+=net_flares_lc
+    # fig=plt.figure(figsize=(15,10), facecolor='white')
+    # plt.scatter(obj.lc.full['time'], obj.lc.full['flux'], s=0.05, color='black')
+    # plt.vlines(t_peak, ymax=max(obj.lc.full['flux']), ymin=min(obj.lc.full['flux']), color='red')
+    # plt.show()
+
     print("Flare addition completed.")
 
 def add_flare(obj, t_peak=None, fwhm=200, ampl=1000):
