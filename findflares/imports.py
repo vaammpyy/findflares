@@ -23,3 +23,4 @@ from .flares_utils import *
 from .injection_recovery import *
 
 warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)

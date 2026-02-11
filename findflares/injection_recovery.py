@@ -558,6 +558,147 @@ def plot_ir_results(obj, mode=None, save_fig=False):
             plt.bar(bin_edges[:-1], rec_frac_erg, width=np.diff(bin_edges), edgecolor='black', alpha=0.7)
             plt.xlabel("Injected Spot Amplitude", fontsize=14)
             plt.ylabel("#", fontsize=14)
+        
+    if mode=='rec_frac_spot_amplitude_binned':
+        fName=f"{mode}_{obj.inst.sector}_{int(obj.inst.cadence*24*3600)}.png"
+        mask_rec=get_ir_mask(flags=flags, mode=['rec'])
+        mask_inj=get_ir_mask(flags=flags, mode=['inj'])
+
+        fig, axs=plt.subplots(2,2,figsize=(10,10),sharex=True, sharey=True)
+
+        injected=np.array(injrec)[mask_inj]
+        # injected_sa=np.array([injected[i][]['spot_amplitude'] for i in range(len(injected))])
+
+        mask = mask_inj & mask_rec
+
+        recovered=np.array(injrec)[mask]
+        injected=np.array(injrec)[mask_inj]
+
+        recovered_sa=np.array([recovered[i]["injected"]["spot_amplitude"] for i in range(len(recovered))])
+        injected_sa=np.array([injected[i]["injected"]["spot_amplitude"] for i in range(len(injected))])
+
+
+        mask_rec_sa_neg05=recovered_sa<-0.5
+        recovered=recovered[mask_rec_sa_neg05]
+        mask_inj_sa_neg05=injected_sa<-0.5
+        injected=injected[mask_inj_sa_neg05]
+
+        recovered_fwhm=np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))])
+        recovered_ampl=np.array([recovered[i]["injected"]['ampl'] for i in range(len(recovered))])
+
+        injected_fwhm=np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))])
+        injected_ampl=np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))])
+
+        recovered_hist2d=np.histogram2d(recovered_fwhm, recovered_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+        injected_hist2d=np.histogram2d(injected_fwhm, injected_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+
+        rec_frac=recovered_hist2d[0]/injected_hist2d[0]
+
+        xedges=injected_hist2d[1]
+        yedges=injected_hist2d[2]
+
+        # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
+        #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+        plot1= axs[0,0].pcolormesh(10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+        axs[0,0].set_xlabel("FWHM [s]", fontsize=14)
+        axs[0,0].set_ylabel("Ampl [ct/s]", fontsize=14)
+        axs[0,0].set_xscale('log')
+        axs[0,0].set_yscale('log')
+        axs[0,0].set_title(f"-1<SA<-0.5")
+        plt.colorbar(plot1, ax=axs[0,0])
+
+        recovered=np.array(injrec)[mask]
+        injected=np.array(injrec)[mask_inj]
+        mask_rec_sa_neg05=(recovered_sa>-0.5) & (recovered_sa<0)
+        recovered=recovered[mask_rec_sa_neg05]
+        mask_inj_sa_neg05=(injected_sa>-0.5) & (injected_sa < 0)
+        injected=injected[mask_inj_sa_neg05]
+
+        recovered_fwhm=np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))])
+        recovered_ampl=np.array([recovered[i]["injected"]['ampl'] for i in range(len(recovered))])
+
+        injected_fwhm=np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))])
+        injected_ampl=np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))])
+
+        recovered_hist2d=np.histogram2d(recovered_fwhm, recovered_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+        injected_hist2d=np.histogram2d(injected_fwhm, injected_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+
+        rec_frac=recovered_hist2d[0]/injected_hist2d[0]
+
+        xedges=injected_hist2d[1]
+        yedges=injected_hist2d[2]
+
+        # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
+        #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+        plot2 = axs[0,1].pcolormesh(10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+        axs[0,1].set_xlabel("FWHM [s]", fontsize=14)
+        axs[0,1].set_ylabel("Ampl [ct/s]", fontsize=14)
+        axs[0,1].set_xscale('log')
+        axs[0,1].set_yscale('log')
+        axs[0,1].set_title(f"-0.5<SA<0")
+        plt.colorbar(plot2, ax=axs[0,1])
+
+        recovered=np.array(injrec)[mask]
+        injected=np.array(injrec)[mask_inj]
+        mask_rec_sa_neg05=(recovered_sa>0) & (recovered_sa<0.5)
+        recovered=recovered[mask_rec_sa_neg05]
+        mask_inj_sa_neg05=(injected_sa>0) & (injected_sa < 0.5)
+        injected=injected[mask_inj_sa_neg05]
+
+        recovered_fwhm=np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))])
+        recovered_ampl=np.array([recovered[i]["injected"]['ampl'] for i in range(len(recovered))])
+
+        injected_fwhm=np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))])
+        injected_ampl=np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))])
+
+        recovered_hist2d=np.histogram2d(recovered_fwhm, recovered_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+        injected_hist2d=np.histogram2d(injected_fwhm, injected_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+
+        rec_frac=recovered_hist2d[0]/injected_hist2d[0]
+
+        xedges=injected_hist2d[1]
+        yedges=injected_hist2d[2]
+
+        # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
+        #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+        plot3=axs[1,0].pcolormesh(10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+        axs[1,0].set_xlabel("FWHM [s]", fontsize=14)
+        axs[1,0].set_ylabel("Ampl [ct/s]", fontsize=14)
+        axs[1,0].set_xscale('log')
+        axs[1,0].set_yscale('log')
+        axs[1,0].set_title(f"0<SA<0.5")
+        plt.colorbar(plot3, ax=axs[1,0])
+
+        recovered=np.array(injrec)[mask]
+        injected=np.array(injrec)[mask_inj]
+        mask_rec_sa_neg05=recovered_sa>0.5
+        recovered=recovered[mask_rec_sa_neg05]
+        mask_inj_sa_neg05=injected_sa>0.5
+        injected=injected[mask_inj_sa_neg05]
+
+        recovered_fwhm=np.array([recovered[i]["injected"]['fwhm'] for i in range(len(recovered))])
+        recovered_ampl=np.array([recovered[i]["injected"]['ampl'] for i in range(len(recovered))])
+
+        injected_fwhm=np.array([injected[i]["injected"]['fwhm'] for i in range(len(injected))])
+        injected_ampl=np.array([injected[i]["injected"]['ampl'] for i in range(len(injected))])
+
+        recovered_hist2d=np.histogram2d(recovered_fwhm, recovered_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+        injected_hist2d=np.histogram2d(injected_fwhm, injected_ampl, bins=[10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10)])
+
+        rec_frac=recovered_hist2d[0]/injected_hist2d[0]
+
+        xedges=injected_hist2d[1]
+        yedges=injected_hist2d[2]
+
+        # plt.imshow(rec_frac.T,origin='lower', aspect='equal',
+        #         extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap='YlGn')
+        plot4=axs[1,1].pcolormesh(10**np.linspace(1,3.5,10), 10**np.linspace(1,4,10), rec_frac.T, cmap='YlGn')
+        axs[1,1].set_xlabel("FWHM [s]", fontsize=14)
+        axs[1,1].set_ylabel("Ampl [ct/s]", fontsize=14)
+        axs[1,1].set_xscale('log')
+        axs[1,1].set_yscale('log')
+        axs[1,1].set_title(f"0.5<SA<1")
+        plt.colorbar(plot4,ax=axs[1,1])
 
     if save_fig:
             plt.savefig(f"{obj.dir}/{fName}", dpi=100)
