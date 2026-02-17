@@ -30,6 +30,8 @@ def MAD(x):
 
 def get_dist_gaia(ra, dec):
     """
+    DEPRECATED
+
     Gets distance of the star from GAIA.
 
     Gets distance of the star from GAIA catalogue if the star is found at the given ra and dec.
