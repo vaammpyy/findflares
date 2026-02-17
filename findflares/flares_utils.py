@@ -600,7 +600,7 @@ def get_flare_spot_amplitude(obj, n=4):
     n_flare=TESSLC.flares["t_start"]
 
     if TESSLC.star.prot is None:
-        TESSLC.flare["spot_amplitude"].append([np.nan]*n_flares)
+        TESSLC.flares["spot_amplitude"].append([np.nan]*len(n_flare))
 
 
     flare_t_peak = TESSLC.flares["t_peak"]
