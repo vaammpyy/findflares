@@ -87,6 +87,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
+                        irec.pickleObj()
                     else:
                         lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
