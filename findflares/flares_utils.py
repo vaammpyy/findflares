@@ -446,7 +446,8 @@ def get_flare_energies(obj):
     TIC=obj.TIC
     ra=obj.star.ra
     dec=obj.star.dec
-    dist_pc = None
+    # dist_pc = None
+    dist_pc = obj.star.dist
     # Removing the distance search with Gaia because TESS catalog has distance from Gaia or Hipparcos.
     # try:
     #     dist_pc=get_dist_gaia(ra, dec)
