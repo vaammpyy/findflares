@@ -94,7 +94,7 @@ def recover_flares(obj, run):
     -----------------------
     flag=<run>.<flare_event>.<sub_flare_#>
 
-    <run> : {01,02,03,...}
+    <run> : {0001,0002,0003,...}
     <flare_event>
         if injected flare is detected : {01,02,03,...}
         if injected flare is not detected : 00
@@ -203,11 +203,11 @@ def recover_flares(obj, run):
         sorted_index=index_array[sorted_order]
         flare_number=1
         if sorted_index.size==0:
-            flag=f"{run:02d}.--.{0:02d}"
+            flag=f"{run:04d}.--.{0:02d}"
             log_injection_recovery(obj,rec_index=i,flag=flag)
         else:
             for inj_index in sorted_index:
-                flag=f"{run:02d}.{i+1:02d}.{flare_number:02d}"
+                flag=f"{run:04d}.{i+1:02d}.{flare_number:02d}"
                 flare_number+=1
                 detected_injections.append(inj_index)
                 log_injection_recovery(obj,rec_index=i, inj_index=inj_index, flag=flag)
@@ -217,7 +217,7 @@ def recover_flares(obj, run):
     for k in range(n_injected_flares):
         if k in detected_injections:
             continue
-        flag=f"{run:02d}.{0:02d}.{0:02d}"
+        flag=f"{run:04d}.{0:02d}.{0:02d}"
         log_injection_recovery(obj,inj_index=k,flag=flag)
     
 #     # plotting the injected and the recovered flares.
@@ -299,15 +299,15 @@ def get_ir_mask(flags, mode=None):
     mask_inj=np.zeros(len(flags), dtype=bool)
 
     if 'rec' in mode:
-        pattern='??.??.01'
+        pattern='????.??.01'
         mask_rec=np.array([fnmatch.fnmatch(flag, pattern) for flag in flags], dtype=bool)
 
     if 'fp' in mode:
-        pattern='??.--.00'
+        pattern='????.--.00'
         mask_fp=np.array([fnmatch.fnmatch(flag, pattern) for flag in flags], dtype=bool)
 
     if 'inj' in mode:
-        pattern='??.?[!--].??'
+        pattern='????.?[!--].??'
         mask_inj=np.array([fnmatch.fnmatch(flag, pattern) for flag in flags], dtype=bool)
 
     mask=np.bitwise_or.reduce([mask_rec, mask_inj, mask_fp])

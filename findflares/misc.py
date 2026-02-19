@@ -3,6 +3,7 @@ from astroquery.gaia import Gaia
 import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astroquery.mast import Catalogs
+from time import time
 
 Gaia.TIMEOUT = 60
 
@@ -84,13 +85,20 @@ def get_dist_tess(tic_id):
     dist : float, None
         Distance in parsecs.
     """
-    print("Fetching distance from TESS.")
+    print("PIPELINE::STEP::Fetching distance from TESS.")
     # Query the TIC catalog for the star's information
+    start_time=time()
     result = Catalogs.query_object(f'TIC {tic_id}', catalog='TIC')
+    stop_time=time()
 
     # Extract the distance information
     if len(result)>0:
         distance_pc = result[0]['d']*u.pc
+        print("PIPELINE::STEP::Distance found.", flush=True)
+        print(f"META::DISTANCE::{distance_pc}", flush=True)
+        print(f"PIPELINE::TIME::{stop_time-start_time:.2f} s", flush=True)
         return distance_pc
     else:
+        print("PIPELINE::STEP::Distance not found.")
+        print(f"PIPELINE::TIME::{stop_time-start_time:.2f} s", flush=True)
         return None
