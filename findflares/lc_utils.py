@@ -90,12 +90,11 @@ def get_period(obj, mask, ret_pow=False, ret_FAP=False, detrended=False):
     FAP : float, optional
         False Alarm Probability of the dominant peak, returned if ret_FAP=True.
     """
-    if detrended:
-        data=obj.lc.detrended
-    else:
-        data=obj.lc.full
+    data=obj.lc.full
     time=data['time'][mask]
     flux=data['flux'][mask]
+    if detrended:
+        flux=flux-obj.lc.model['flux'][mask]
     flux_err=data['flux_err'][mask]
     # result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
     # gls=Gls(((time, flux, flux_err)), fend=2, fbeg=2/((time[-1]-time[0])*24))
@@ -338,7 +337,6 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
             for i in range(len(t_start)):
                 plt.scatter(obj.lc.detrended['time'][t_start[i]:t_stop[i]+1], obj.lc.detrended['flux'][t_start[i]:t_stop[i]+1], s=2, color='b')
 
-
     if mode == 'flare_zoom':
         save_fig=False
         f_start=obj.lc.flare['start']
@@ -353,6 +351,17 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
             plt.tick_params(labelsize=14)
             plt.show()
         return
+    
+    # if mode == 'ir_diagnostics':
+    #     """This is the diagnostics plot for the injection recovery
+    #     Make sure to add the spot amplitude of injectec, recovered and the false positive flare, 
+    #     decide a color scheme to show the detected flares and use the different linestyle to show all
+    #     three flare.
+        
+    #     Note: I have implemented this plotting in the recover_flares in injection_recovery.py
+    #     """
+    #     print()
+
 
     if injrec:
         fName=f"ir_{injrec_run:02d}_{fName}"
@@ -363,8 +372,25 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
     plt.tick_params(labelsize=14)
     if save_fig:
         plt.savefig(f"{obj.dir}/{fName}", dpi=100)
-        print(f"Plot saved.")
-        print(f"PATH::{obj.dir}/{fName}.")
+        print(f"PIPELINE::SAVED::PATH::{obj.dir}/{fName}.")
     else:
         plt.show()
     plt.close()
+
+def rotation_check(obj):
+    """
+    Generalized module to check for rotation based on delta bic. (https://en.wikipedia.org/wiki/Bayesian_information_criterion)
+
+    Note: Use the number of hyper-parameters for the number of free parameters, for successive iterations
+    previous parameters does not matter.
+
+    Parameters
+    ----------
+
+    Return
+    ------
+    rotation : bool
+        True if rotation is found, False if rotation is not found.
+    """
+
+    return None

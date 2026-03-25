@@ -220,57 +220,48 @@ def recover_flares(obj, run):
         flag=f"{run:04d}.{0:02d}.{0:02d}"
         log_injection_recovery(obj,inj_index=k,flag=flag)
     
-#     # plotting the injected and the recovered flares.
-#     fig, ax = plt.subplots(2,1, sharex=True)
-#     injected_t_peak = t_peak_Inj
-#     recovered_t_peak = rec_dict["t_peak"]
+    # plotting the injected and the recovered flares.
+    dirName = f"{obj.dir}/ir_runs"
+    try:
+        os.mkdir(dirName)
+    except OSError:
+        pass
+    fname = f"{obj.dir}/ir_runs/{run:05d}.png"
+    fig, ax = plt.subplots(1,1, sharex=True, figsize=(20,10))
+    injected_t_peak = t_peak_Inj
+    recovered_t_peak = rec_dict["t_peak"]
 
-#     time = obj.lc.model["time"]
-#     model_flux = obj.lc.model["flux"]
-#     raw_flux = obj.lc.full["flux"]
+    time = obj.lc.model["time"]
+    model_flux = obj.lc.model["flux"]
+    raw_flux = obj.lc.full["flux"]
 
 
-#     ax[0].scatter(time, raw_flux, s=0.5, color = 'black')
-#     ax[0].plot(time, model_flux, color='magenta')
-#     # ax[0].axvline(injected_t_peak, 0.5*min(model_flux), 1.5*max(model_flux), color='blue')
+    ax.scatter(time, raw_flux, s=0.5, color = 'black')
+    ax.plot(time, model_flux, color='magenta')
+    # ax[0].axvline(injected_t_peak, 0.5*min(model_flux), 1.5*max(model_flux), color='blue')
 
-#     colors = [
-#     "tab:blue",
-#     "tab:orange",
-#     "tab:green",
-#     "tab:red",
-#     "tab:purple",
-#     "tab:brown",
-#     "tab:pink",
-#     "tab:gray",
-#     "tab:olive",
-#     "tab:cyan",
-# ]
 
-#     for i,t in enumerate(injected_t_peak):
-#         sa=inj_dict["spot_amplitude"][i]
-#         ax[0].axvline(t, label=sa, color=colors[i])
-#         ax[0].text(t+0.05, 0.5*max(model_flux), f"{sa}", fontsize=14,
-#                     zorder = 10,
-#                     clip_on = False)
-#     ax[0].set_ylabel("Flux")
+    for i,t in enumerate(injected_t_peak):
+        sa_inj=inj_dict["spot_amplitude"][i]
+        # ax[0].axvline(t, label=sa, color=colors[i])
+        ax.axvline(t, label=sa_inj, color='blue', linestyle='--')
+        ax.text(t, ax.get_ylim()[1], f"{sa_inj:0.2f}",
+                    zorder = 10,
+                    clip_on = False,
+                    rotation = 90)
+    for i,t in enumerate(recovered_t_peak):
+        sa_rec=rec_dict["spot_amplitude"][i]
+        # ax[0].axvline(t, label=sa, color=colors[i])
+        ax.axvline(t, label=sa_rec, color='red')
+        ax.text(t+0.005, ax.get_ylim()[1], f"{sa_rec:0.2f}",
+                    zorder = 10,
+                    clip_on = False,
+                    rotation = 90)
+    ax.set_ylabel("Flux")
 
-#     ax[1].scatter(time, raw_flux, s=0.5, color = 'black')
-#     ax[1].plot(time, model_flux, color='magenta')
-#     # ax[1].axvline(recovered_t_peak, 0.5*min(model_flux), 1.5*max(model_flux), color='red')
-    
-#     for i, t in enumerate(recovered_t_peak):
-#         sa=rec_dict["spot_amplitude"][i]
-#         ax[1].axvline(t, label=sa, color=colors[i])
-#         ax[1].text(t+0.05, 0.5*max(model_flux), f"{sa}", fontsize=14,
-#                     zorder = 10,
-#                     clip_on = False)
-#     ax[1].set_ylabel("Flux")
-#     ax[1].set_xlabel("Time")
-
-#     ax[0].legend()
-#     ax[1].legend()
-#     plt.show()
+    plt.savefig(fname)
+    plt.close()
+    print(f"PIPELINE::SAVED::PATH::{fname}")
 
     print("Flare recovery completed.")
 
@@ -702,7 +693,6 @@ def plot_ir_results(obj, mode=None, save_fig=False):
 
     if save_fig:
             plt.savefig(f"{obj.dir}/{fName}", dpi=100)
-            print(f"Plot saved.")
-            print(f"PATH::{obj.dir}/{fName}.")
+            print(f"PIPELINE::SAVED::PATH::{obj.dir}/{fName}.")
     else:
             plt.show()

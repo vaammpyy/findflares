@@ -7,6 +7,7 @@ from scipy.signal import savgol_filter, medfilt
 import matplotlib.pyplot as plt
 import pdb
 import copy
+from time import time
 
 from .lc_utils import get_period, get_mask
 from .gls import *
@@ -323,6 +324,351 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
             model_lc['time']= np.append(model_lc['time'],obj.lc.full['time'][eval_mask])
             model_lc['flux']= np.append(model_lc['flux'],map_soln['pred'])
         print(f"Segment: {seg}, completed.")
+
+    obj.lc.detrended=lc_detrended
+    obj.lc.model=model_lc
+    obj.lc.detrend_scheme="GP"
+
+def _RotationTerm_model(obj, model_mask, eval_mask, period_peak, flux_model):
+    """
+    This is an alternate model where I'm detrending after removing rotataion after each iteration.
+
+    Rotation term kernel for gaussian process modelling.
+
+    Rotation term kernel for gaussian process modelling of stellar rotation, section 5.2.1 in Medina et al. 2020.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    model_mask : ndarray
+        Mask for training the model, includes data points with q_flag = [0].
+    eval_mask : ndarray
+        Mask to evaluate the model, for detrending all the data points with q_flags i.e [0,512].
+    period_peak : float
+        GLS period of the entire lightcurve.
+
+    Returns
+    -------
+    map_soln : obj
+        Holds the evaluated model at different time stamps and other information.
+    """
+    x=obj.lc.full['time'][model_mask]
+    y=obj.lc.full['flux'][model_mask]-flux_model[model_mask]
+    yerr=obj.lc.full['flux_err'][model_mask]
+
+    x_eval=obj.lc.full['time'][eval_mask]
+
+    # period_peak=get_period(obj, model_mask)
+    print(f"GLS period: {period_peak}")
+
+    with pm.Model() as model:
+        # The mean flux of the time series
+        mean = pm.Normal("mean", mu=np.mean(y), sigma=10)
+
+        # A jitter term describing excess white noise
+        log_jitter = pm.Uniform("log_jitter", lower=-3, upper=2)
+        #log_jitter = pm.Normal("log_jitter", mu=np.log(np.var(y)), sigma=10)
+
+        # The parameters of the RotationTerm kernel
+        log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=2)
+
+        log_period = pm.Normal("log_period", mu=np.log(period_peak), sigma=0.0001) # sigma 0.01
+        period = pm.Deterministic("period", tt.exp(log_period))
+        Q0 = pm.Normal("Q0", mu=5, sigma=2)
+        log_dQ = pm.Normal("log_dQ", mu=0, sigma=1) # mu = 10.0
+        f = pm.Uniform("f", lower=0.8, upper=1)
+
+        # Set up the Gaussian Process model
+        kernel = terms.RotationTerm(
+            sigma=tt.exp(log_sigma_rot),
+            period=period,
+            Q0=Q0,
+            dQ=tt.exp(log_dQ),
+            f=f,
+        )
+        gp = GaussianProcess(
+            kernel,
+            t=x,
+            diag=yerr**2 + tt.exp(2 * log_jitter),
+            mean=mean,
+            quiet=True,
+        )
+
+        # Compute the Gaussian Process likelihood and add it into the
+        # the PyMC3 model as a "potential"
+        gp.marginal("gp", observed=y)
+
+        # Compute the mean model prediction for plotting purposes
+        # Evaluating the values from the GP at all the raw LC time stamps
+        pm.Deterministic("pred", gp.predict(y, t=x_eval))
+
+        # Optimize to find the maximum a posterior parameters
+        map_soln = pmx.optimize(progressbar=False)
+
+        gls=Gls(((x, y, yerr)), fend=4, fbeg=1/14)
+
+        fig=plt.figure(figsize=(20,10))
+        plt.scatter(x, y, s=0.01, color='k')
+        plt.plot(obj.lc.full['time'][eval_mask], map_soln['pred'], color='magenta', label=f"{gls.best['P']}")
+        plt.legend()
+        plt.savefig(f"{obj.dir}/iter_{time()}.png")
+        plt.close()
+        # plt.show()
+
+        for k, v in map_soln.items():
+            if k == 'period':
+                print(f"GP {k}: {v}")
+                obj.star.prot_GP.append(float(v))
+
+        return map_soln
+
+def _GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False, mad_th=6):
+    """
+    This is an alternate model where I'm detrending after removing rotataion after each iteration.
+
+    Detrends lightcurve data using gaussian process regression.
+
+    Detrends lightcurve data using gaussian process regression with the Rotation kernel.
+
+    Parameters
+    ----------
+    obj : TESSLC
+        TESS lightcurve object.
+    segments : list, optional
+        Segments to detrend, by default None. If not parsed then detrends all the segments.
+    mask_flare : bool, optional
+        If true then it will mask the flares when training the model, by default False.
+        When true it assumes obj.lc.flares is defined.
+    mask_transit : bool, optional
+        If true then it will mask the transit when training the model, by default False.
+        When true it assumes obj.lc.transit is defined.
+    mask_outlier : bool, optional
+        When True outliers (>3*sig) will be masked out, by default False.
+    iter : bool, optional
+        When True GP runs iteratively for each segment, by default False.
+    mad_th : float, optional
+        Sets the MAD factor for the outlier masking, by default 6.
+
+    Attributes
+    ----------
+    obj.lc.detrended : dict
+        Detrended lightcurve dictionary.
+    obj.lc.model : ndarray
+        Model used for detrending lightcurve.
+    """
+    print("GP DETREND STARTED")
+    q_flags=[0]
+
+    # if iter==None or iter==1:
+    lc_detrended={'time':np.array([]),
+                    "flux":np.array([]),
+                    "flux_err":np.array([]),
+                    "quality":np.array([])}
+
+    model_lc={'time':obj.lc.full['time'],
+                "flux":np.zeros(len(obj.lc.full['flux']), dtype=np.float64)}
+
+    if segments is None:
+        segments=np.unique(obj.lc.segment)
+    
+    print(f"GP modelling segments: {segments}")
+    for seg in segments:
+        print()
+        print("------------------------------------")
+        print(f"Segment: {seg}, started.")
+        print()
+        model_mask=get_mask(obj, q_flags=q_flags, segments=[seg])
+        period_model_mask=get_mask(obj, q_flags=q_flags)
+
+        if iter:
+            rotation=True
+            i=1
+            period_peak=0
+            mask_flare=False
+            mask_transit=False
+            mask_outlier=True
+            while rotation:
+                print("*********")
+                print(f"Iter::{i}")
+                print("*********")
+                # if mask_flare:
+                #     flare_mask=obj.lc.flare['mask']
+                #     if flare_mask.size==0:
+                #         comb_model_mask = model_mask
+                #     else:
+                #         comb_model_mask = flare_mask & model_mask
+                # else:
+                #     comb_model_mask = model_mask
+
+                comb_model_mask = model_mask
+                comb_period_model_mask = period_model_mask
+                if mask_transit:
+                    transit_mask=obj.lc.transit['mask']
+                    comb_model_mask = transit_mask & comb_model_mask
+                    comb_period_model_mask = transit_mask & comb_period_model_mask
+                
+                if mask_outlier:
+                    flux=obj.lc.full['flux']
+                    mean=np.mean(flux)
+                    std=np.std(flux[model_mask])
+                    mad=MAD(flux)
+                    flux_dev=abs(flux-mean)
+                    if mask_flare:
+                        outlier_mask=(flux_dev<mad_th*mad) & (flux_dev<2*std)
+                    else:
+                        outlier_mask=flux_dev<mad_th*mad
+                    comb_model_mask = outlier_mask & comb_model_mask
+                    comb_period_model_mask = outlier_mask & comb_period_model_mask
+
+                if i == 1:
+                    period_peak=get_period(obj, comb_period_model_mask, detrended=True)
+                print(f"Period peak {period_peak}")
+                eval_mask=get_mask(obj, segments=[seg])
+
+                map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask, period_peak=period_peak, flux_model=model_lc['flux'])
+
+                time=obj.lc.full['time'][eval_mask]
+                model_lc['flux'][eval_mask]=model_lc['flux'][eval_mask]+map_soln['pred']
+                flux_detrended=obj.lc.full['flux'][eval_mask]-model_lc['flux'][eval_mask]
+                flux_err=obj.lc.full['flux_err'][eval_mask]
+
+                fig=plt.figure(figsize=(20,10))
+                # plt.scatter(obj.lc.full['time'][comb_model_mask], obj.lc.full['flux'][comb_model_mask], s=1, color='k')
+                # plt.scatter(time, flux_detrended, s=0.01, color='k')
+                # if mask_outlier:
+                #     plt.scatter(obj.lc.full['time'][outlier_mask], obj.lc.full['flux'][outlier_mask], s=1, color='g')
+                # if mask_transit:
+                #     plt.scatter(obj.lc.full['time'][transit_mask], obj.lc.full['flux'][transit_mask], s=1, color='b')
+                # if mask_flare:
+                #     plt.scatter(obj.lc.full['time'][flare_mask], obj.lc.full['flux'][flare_mask], s=1, color='r')
+                plt.plot(time, model_lc['flux'][eval_mask], color='magenta')
+                plt.savefig(f"{obj.dir}/{seg}_{i}_*.png")
+                plt.close()
+
+                # find flares and extending it.
+                # start, stop=FINDflare(flux_detrended, flux_err, N1=3, N2=1, N3=3, avg_std=True, std_window=5)
+                # if len(start)>0: 
+                #     if int(obj.inst.cadence*24*3600) == 20:
+                #         close_th=18
+                #     if int(obj.inst.cadence*24*3600) == 120:
+                #         close_th=3
+                #     start, stop= _include_tail(flux, start, stop, sig_lvl=1)
+                #     start, stop=_merge_flares(start, stop, close_th=close_th)
+                #     #making a negative flare mask
+                #     flare_mask=np.ones(len(time), dtype=bool)
+
+                # for j in range(len(start)):
+                #     flare_mask[start[j]:stop[j]+1]=0
+
+                # making outlier mask
+                mean=np.mean(flux_detrended)
+                std=np.std(flux_detrended)
+                flux_dev=abs(flux_detrended-mean)
+                outlier_mask=flux_dev<3*std
+                combined_mask=outlier_mask
+
+                # if mask_flare and len(start)>0:
+                #     combined_mask = outlier_mask & flare_mask
+                # else:
+                #     combined_mask = outlier_mask
+
+
+                gls=Gls(((time[combined_mask], flux_detrended[combined_mask], flux_err[combined_mask])), fend=4, fbeg=1/14)
+                fap=gls.FAP()
+                fap_lvl = 0.01
+                # pmax=gls.pmax
+                # pwr_lvl=gls.powerLevel(0.001)
+                period=gls.best['P']
+                # fig = plt.figure(figsize=(20,10))
+                # plt.scatter(time[combined_mask], flux_detrended[combined_mask], s=0.01, color='k')
+                # plt.title(f"Period={period}")
+                # plt.show()
+                mask_flare=True
+                mask_transit=True
+                mask_outlier=True
+                # if pmax>pwr_lvl:
+                #     print(f"PWR-DIFF::{pmax-pwr_lvl}, Period::{period}, rotation found.")
+                if fap < fap_lvl:
+                    print(f"FAP::{fap}, Residual period::{period}, rotation found.\n")
+                    find_flare(obj, find_transit=mask_transit)
+                    if i>=3:
+                        rotation= False
+                    else:
+                        rotation= True
+                        period_peak = period
+                    print(f"Period peak={period_peak}")
+                else:
+                    print(f"FAP::{fap}, rotation not found.\n")
+                    rotation= False
+
+                fig=plt.figure(figsize=(20,10))
+                plt.scatter(time, obj.lc.full['flux'][eval_mask], s=0.01, color='k')
+                # plt.scatter(time[1-combined_mask], obj.lc.full['flux'][1-combined_mask], s=1, color='red')
+                plt.plot(time, model_lc['flux'][eval_mask], color='magenta')
+                plt.savefig(f"{obj.dir}/{seg}_{i}.png")
+                plt.close()
+                fig=plt.figure(figsize=(20,10))
+                plt.scatter(time, obj.lc.full['flux'][eval_mask]-model_lc['flux'][eval_mask], s=0.01, color='k')
+                plt.savefig(f"{obj.dir}/{seg}_{i}_detrended.png")
+                plt.close()
+                fig=plt.figure(figsize=(20,10))
+                plt.semilogx(1/gls.freq, gls.power)
+                plt.axhline(gls.powerLevel(0.001))
+                plt.savefig(f"{obj.dir}/{seg}_{i}_gls.png")
+                plt.close()
+                i+=1
+
+            # lc_detrended['time']= np.append(lc_detrended['time'],obj.lc.full['time'][eval_mask])
+            # lc_detrended['flux']= np.append(lc_detrended['flux'],obj.lc.full['flux'][eval_mask]-flux_model[eval_mask])
+            # lc_detrended['flux_err']= np.append(lc_detrended['flux_err'],obj.lc.full['flux_err'][eval_mask])
+            # lc_detrended['quality']= np.append(lc_detrended['quality'],obj.lc.full['quality'][eval_mask])
+
+            # model_lc['time']= np.append(model_lc['time'],obj.lc.full['time'][eval_mask])
+            # model_lc['flux']= np.append(model_lc['flux'],flux_model[eval_mask])
+
+        else:
+            # Masking the flares when flares are detected.
+            if mask_flare and len(obj.lc.flare['mask'])>0:
+                flare_mask=obj.lc.flare['mask']
+                comb_model_mask = flare_mask & model_mask
+                comb_period_model_mask = flare_mask & period_model_mask
+            else:
+                comb_model_mask = model_mask
+                comb_period_model_mask = period_model_mask
+
+            if mask_transit:
+                transit_mask=obj.lc.transit['mask']
+                comb_model_mask = transit_mask & comb_model_mask
+                comb_period_model_mask = transit_mask & comb_period_model_mask
+
+            if mask_outlier:
+                flux=obj.lc.full['flux']
+                mean=np.mean(flux)
+                # std=np.std(flux)
+                mad=MAD(flux)
+                flux_dev=abs(flux-mean)
+                outlier_mask=flux_dev<mad_th*mad
+                comb_model_mask = outlier_mask & comb_model_mask
+                comb_period_model_mask = outlier_mask & comb_period_model_mask
+
+            period_peak=get_period(obj, comb_period_model_mask)
+            eval_mask=get_mask(obj, segments=[seg])
+            map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask, period_peak=period_peak)
+
+            lc_detrended['time']= np.append(lc_detrended['time'],obj.lc.full['time'][eval_mask])
+            lc_detrended['flux']= np.append(lc_detrended['flux'],obj.lc.full['flux'][eval_mask]-map_soln['pred'])
+            lc_detrended['flux_err']= np.append(lc_detrended['flux_err'],obj.lc.full['flux_err'][eval_mask])
+            lc_detrended['quality']= np.append(lc_detrended['quality'],obj.lc.full['quality'][eval_mask])
+
+            model_lc['time']= np.append(model_lc['time'],obj.lc.full['time'][eval_mask])
+            model_lc['flux']= np.append(model_lc['flux'],map_soln['pred'])
+        print(f"Segment: {seg}, completed.")
+
+    lc_detrended['time']= obj.lc.full['time']
+    lc_detrended['flux']= obj.lc.full['flux']-model_lc['flux']
+    lc_detrended['flux_err']= obj.lc.full['flux_err']
+    lc_detrended['quality']= obj.lc.full['quality']
 
     obj.lc.detrended=lc_detrended
     obj.lc.model=model_lc

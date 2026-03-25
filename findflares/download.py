@@ -101,6 +101,11 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
                        "flux_err": np.array(lc['flux_err'].value,dtype=np.float64),
                        "quality": np.ma.getdata(lc["quality"])}
 
+        obj.lc.model={"time":lc['time'].value.astype(np.float64),
+                       "flux":np.zeros(len(lc['time']),dtype=np.float64),
+                       "flux_err": np.array(lc['flux_err'].value,dtype=np.float64),
+                       "quality": np.ma.getdata(lc["quality"])}
+
         # Assigning the stellar properties
         obj.star.ra=lc.meta['RA_OBJ']
         obj.star.dec=lc.meta['DEC_OBJ']

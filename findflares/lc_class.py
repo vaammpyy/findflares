@@ -384,6 +384,22 @@ class TESSLC:
             #     print("iter 2")
             #     Median_detrend(self, mask_flare=False, mask_transit=False)
         print("STEP::DETREND:END", flush=True)
+        # Check the stability of the rotation period.
+        mean = np.mean(self.star.prot_GP)
+        std = np.std(self.star.prot_GP)
+        tolerance = std/mean
+        max_tolerance = 0.05
+        if tolerance < max_tolerance:
+            self.star.prot_GP=mean
+            print(f"META::ROTPERIOD::{self.star.prot_GP}")
+            self.quality = "good"
+        else:
+            print(f"PIPELINE::COMMENT::Rotation period is not robust.")
+            self.quality = "bad"
+            self.star.prot = None
+            self.star.prot_GP = []
+        print(f"PIPELINE::COMMENT::ROTQUAL={self.quality}")
+        # write the GLS module for detrending check.
     
     def findflares(self):
         """
@@ -516,7 +532,7 @@ class InjRec(TESSLC):
                             'fwhm': [],
                             'ed':[],
                             'energy':[],
-                            "spot_amplitude";[]}
+                            "spot_amplitude":[]}
         injrec : array
             Array of injection recovery dictionaries.
             [{"injected":{"t_peak":,
@@ -551,6 +567,7 @@ class InjRec(TESSLC):
         super().__init__(tesslc.TIC, tesslc.dir)
         self.lc = copy.deepcopy(tesslc.lc)
         self.orig_lc = copy.deepcopy(tesslc.lc)
+        self.orig_flares = copy.deepcopy(tesslc.flares)
         self.star =copy.deepcopy(tesslc.star)
         self.inst =copy.deepcopy(tesslc.inst)
         self.flares =copy.deepcopy(tesslc.flares)

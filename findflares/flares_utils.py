@@ -517,13 +517,19 @@ def replace_flares_w_gaussian_noise_and_clean_attr(obj):
         Transit information dict, assigned None
     obj.lc.transit_run : bool
         Find transit run check, assigned None
+    obj.star.prot : float
+        Rotation period from the GLS.
+    obj.star.prot_GP : Sequence[float]
+        Segment rotation period per iteration, assigned None
+    obj.flares : dict
+        Flare parameters, assigned empty lists.
     """
-    lc_dict=obj.lc.detrended
+    lc_dict=copy.copy(obj.orig_lc.detrended)
 
     flux_mean=np.mean(lc_dict['flux'])
     flux_std=np.std(lc_dict['flux'])
 
-    flares_dict=obj.flares
+    flares_dict=obj.orig_flares
 
     n_flares=len(flares_dict['i_start'])
     for i in range(n_flares):
@@ -532,15 +538,17 @@ def replace_flares_w_gaussian_noise_and_clean_attr(obj):
 
         n_samples=stop-start+1
 
-        obj.lc.detrended['flux'][start:stop+1]=np.random.normal(flux_mean, flux_std, n_samples)
+        lc_dict['flux'][start:stop+1]=np.random.normal(flux_mean, flux_std, n_samples)
 
-    obj.lc.full['flux']=obj.orig_lc.model['flux']+obj.lc.detrended['flux']
+    obj.lc.full['flux']=obj.orig_lc.model['flux']+lc_dict['flux']
     obj.lc.detrended=None
     obj.lc.detrend_scheme=None
     obj.lc.flare=None
     obj.lc.flare_run=False
     obj.lc.transit=None
     obj.lc.transit_run=False
+    obj.star.prot = None
+    obj.star.prot_GP=[]
     obj.flares={"t_start":[],
                     "t_peak":[],
                     "t_stop":[],

@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="findflares",
-    version="0.2.0",  # Adjust version as needed
+    version="0.3.0",  # Adjust version as needed
     author="Rohan Kumar",
     author_email="rohankumarprasad@yahoo.com",
     description="A Python library for detecting stellar flares",
