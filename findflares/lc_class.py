@@ -396,8 +396,7 @@ class TESSLC:
         else:
             print(f"PIPELINE::COMMENT::Rotation period is not robust.")
             self.quality = "bad"
-            self.star.prot = None
-            self.star.prot_GP = []
+            self.star.prot_GP = mean
         print(f"PIPELINE::COMMENT::ROTQUAL={self.quality}")
         # write the GLS module for detrending check.
     
