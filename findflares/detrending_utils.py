@@ -39,6 +39,7 @@ def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
     """
     x=obj.lc.full['time'][model_mask]
     y=obj.lc.full['flux'][model_mask]
+    mad=MAD(y)
     yerr=obj.lc.full['flux_err'][model_mask]
 
     x_eval=obj.lc.full['time'][eval_mask]
@@ -55,7 +56,9 @@ def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
         #log_jitter = pm.Normal("log_jitter", mu=np.log(np.var(y)), sigma=10)
 
         # The parameters of the RotationTerm kernel
-        log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=2)
+        # This was the older bounds on the sigma_rot, changed on March 30th 2026
+        # log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=2)
+        log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=np.log10(mad))
 
         log_period = pm.Normal("log_period", mu=np.log(period_peak), sigma=0.0001) # sigma 0.01
         period = pm.Deterministic("period", tt.exp(log_period))

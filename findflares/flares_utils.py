@@ -681,16 +681,18 @@ def add_flares(obj, N=10):
     arr_time_peak=np.array(sample(list(time), k=N))
     t_peak=arr_time_peak+np.random.uniform(low=-cadence/2,high=cadence/2, size=N)
     net_flares_lc=np.zeros(len(time))
+    flux_median = np.median(obj.lc.full['flux'])
     for i in range(len(t_peak)):
         #fwhm is in seconds
         log10_fwhm=np.random.uniform(low=1.0,high=3.5)
         # log10_fwhm=2
         #ampl is in counts/s
-        log10_ampl=np.random.uniform(low=1.0,high=4.0)
+        # log10_ampl=np.random.uniform(low=1.0,high=4.0)
+        factor_ampl=np.random.uniform(low=-3,high=0)
         # log10_ampl=3
 
         fwhm=10**(log10_fwhm)/(24*3600)
-        ampl=10**log10_ampl
+        ampl=10**(factor_ampl)*flux_median
 
         # fwhm=log10_fwhm/(24*3600)
         # ampl=log10_ampl

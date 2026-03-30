@@ -220,21 +220,52 @@ def recover_flares(obj, run):
         flag=f"{run:04d}.{0:02d}.{0:02d}"
         log_injection_recovery(obj,inj_index=k,flag=flag)
     
-    # plotting the injected and the recovered flares.
+    print("Flare recovery completed.")
+    
+    injrec = copy.copy(obj.injrec)
+
+    flags=[injrec[i]['flag'] for i in range(len(injrec))]
+
+    mask_rec = get_ir_mask(flags=flags, mode=['rec'])
+    mask_inj = get_ir_mask(flags=flags, mode=['inj'])
+    mask_run = get_ir_mask(flags=flags, mode=['run'], run=run)
+
+    recovery_dict = np.array([injrec[i]['recovered'] for i in range(len(injrec))])
+    injected_dict = np.array([injrec[i]['injected'] for i in range(len(injrec))])
+
+    # print("Injected",[(injrec[i]["injected"],mask_inj[i]) for i in range(len(injrec))])
+    # print("Recovered",[(injrec[i]["recovered"],mask_rec[i]) for i in range(len(injrec))])
+    # print("Injected mask",mask_inj)
+    # print("Recovered mask",mask_rec)
+
+    mask = mask_inj & mask_rec & mask_run
+    mask_inj = mask_inj & mask_run
+
+    # print(f"Combined mask={mask}")
+
     dirName = f"{obj.dir}/ir_runs"
     try:
         os.mkdir(dirName)
     except OSError:
         pass
+
+    # injected_t_peak = t_peak_Inj
+    injected = injected_dict[mask_inj]
+    recovered = recovery_dict[mask]
+    # print(np.array(injrec)[mask_inj])
+    # print(len(np.array(injrec)[mask]))
+    print(f"Injected={len(injected)}, Recovered={len(recovered)}")
+    recovered_t_peak = [recovered[i]["t_peak"] for i in range(len(recovered))]
+    recovered_sa = [recovered[i]["spot_amplitude"] for i in range(len(recovered))]
+    injected_t_peak = [injected[i]["t_peak"] for i in range(len(injected))]
+    injected_sa = [injected[i]["spot_amplitude"] for i in range(len(injected))]
+
     fname = f"{obj.dir}/ir_runs/{run:05d}.png"
     fig, ax = plt.subplots(1,1, sharex=True, figsize=(20,10))
-    injected_t_peak = t_peak_Inj
-    recovered_t_peak = rec_dict["t_peak"]
 
     time = obj.lc.model["time"]
     model_flux = obj.lc.model["flux"]
     raw_flux = obj.lc.full["flux"]
-
 
     ax.scatter(time, raw_flux, s=0.5, color = 'black')
     ax.plot(time, model_flux, color='magenta')
@@ -242,17 +273,17 @@ def recover_flares(obj, run):
 
 
     for i,t in enumerate(injected_t_peak):
-        sa_inj=inj_dict["spot_amplitude"][i]
+        sa_inj=injected_sa[i]
         # ax[0].axvline(t, label=sa, color=colors[i])
-        ax.axvline(t, label=sa_inj, color='blue', linestyle='--')
+        ax.axvline(t, label=sa_inj, color='blue', linestyle='--', linewidth=2)
         ax.text(t, ax.get_ylim()[1], f"{sa_inj:0.2f}",
                     zorder = 10,
                     clip_on = False,
                     rotation = 90)
     for i,t in enumerate(recovered_t_peak):
-        sa_rec=rec_dict["spot_amplitude"][i]
+        sa_rec=recovered_sa[i]
         # ax[0].axvline(t, label=sa, color=colors[i])
-        ax.axvline(t, label=sa_rec, color='red')
+        ax.axvline(t, label=sa_rec, color='red', linestyle='-.')
         ax.text(t+0.005, ax.get_ylim()[1], f"{sa_rec:0.2f}",
                     zorder = 10,
                     clip_on = False,
@@ -263,9 +294,8 @@ def recover_flares(obj, run):
     plt.close()
     print(f"PIPELINE::SAVED::PATH::{fname}")
 
-    print("Flare recovery completed.")
 
-def get_ir_mask(flags, mode=None):
+def get_ir_mask(flags, mode=None, run=None):
     """
     Generates mask for injection recovery tests.
 
@@ -276,7 +306,9 @@ def get_ir_mask(flags, mode=None):
     flags : list
         Flags list of injection recovery results.
     mode : list
-        Masking mode ['rec', 'fp', 'inj'], list of flags for mask.
+        Masking mode ['rec', 'fp', 'inj', 'run], list of flags for mask.
+    run : int
+        Run number for the mask, default None.
 
     Returns
     -------
@@ -288,6 +320,7 @@ def get_ir_mask(flags, mode=None):
     mask_rec=np.zeros(len(flags), dtype=bool)
     mask_fp=np.zeros(len(flags), dtype=bool)
     mask_inj=np.zeros(len(flags), dtype=bool)
+    mask_run=np.zeros(len(flags), dtype=bool)
 
     if 'rec' in mode:
         pattern='????.??.01'
@@ -301,7 +334,11 @@ def get_ir_mask(flags, mode=None):
         pattern='????.?[!--].??'
         mask_inj=np.array([fnmatch.fnmatch(flag, pattern) for flag in flags], dtype=bool)
 
-    mask=np.bitwise_or.reduce([mask_rec, mask_inj, mask_fp])
+    if 'run' in mode:
+        pattern=f'{run:04d}.??.??'
+        mask_run=np.array([fnmatch.fnmatch(flag, pattern) for flag in flags], dtype=bool)
+
+    mask=np.bitwise_or.reduce([mask_rec, mask_inj, mask_fp, mask_run])
 
     return mask
 
