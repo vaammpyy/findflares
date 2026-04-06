@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 from .FINDflare_dport import FINDflare
 from .aflare import aflare, aflare1
-from .misc import get_dist_gaia, get_dist_tess
+from .misc import get_dist_gaia, get_dist_tess, MAD
 from .imports import *
 
 def _merge_flares(start_indices, stop_indices, close_th):
@@ -473,7 +473,7 @@ def get_flare_energies(obj):
     for i in range(n_flares):
         in_flare_time=time[flares_dict['i_start'][i]: flares_dict["i_stop"][i]+1]
         in_flare_flux=flux_detrended[flares_dict['i_start'][i]: flares_dict["i_stop"][i]+1]
-        e_count=simpson(in_flare_flux, x=in_flare_time)*24*3600
+        e_count=simpson(in_flare_flux*obj.star.flux_norm, x=in_flare_time)*24*3600
         lambda_mean=7452.64*u.angstrom
 
         h=const.h
@@ -527,9 +527,10 @@ def replace_flares_w_gaussian_noise_and_clean_attr(obj):
     lc_dict=copy.copy(obj.orig_lc.detrended)
 
     flux_mean=np.mean(lc_dict['flux'])
-    flux_std=np.std(lc_dict['flux'])
+    flux_mad=MAD(lc_dict['flux'])
 
     flares_dict=obj.orig_flares
+    obj.lc.full['flux'] = copy.copy(obj.orig_lc.full['flux'])
 
     n_flares=len(flares_dict['i_start'])
     for i in range(n_flares):
@@ -538,9 +539,9 @@ def replace_flares_w_gaussian_noise_and_clean_attr(obj):
 
         n_samples=stop-start+1
 
-        lc_dict['flux'][start:stop+1]=np.random.normal(flux_mean, flux_std, n_samples)
+        obj.lc.full['flux'][start:stop+1]=np.random.normal(flux_mean, flux_mad, n_samples)+obj.orig_lc.model['flux'][start:stop+1]
 
-    obj.lc.full['flux']=obj.orig_lc.model['flux']+lc_dict['flux']
+    # obj.lc.full['flux']=obj.orig_lc.model['flux']+lc_dict['flux']
     obj.lc.detrended=None
     obj.lc.detrend_scheme=None
     obj.lc.flare=None
@@ -683,12 +684,13 @@ def add_flares(obj, N=10):
     net_flares_lc=np.zeros(len(time))
     flux_median = np.median(obj.lc.full['flux'])
     for i in range(len(t_peak)):
+        # The range for FWHM and amplitude comes from Gunther et al 2020
         #fwhm is in seconds
         log10_fwhm=np.random.uniform(low=1.0,high=3.5)
         # log10_fwhm=2
         #ampl is in counts/s
         # log10_ampl=np.random.uniform(low=1.0,high=4.0)
-        factor_ampl=np.random.uniform(low=-3,high=0)
+        factor_ampl=np.random.uniform(low=-2,high=0)
         # log10_ampl=3
 
         fwhm=10**(log10_fwhm)/(24*3600)
@@ -700,8 +702,10 @@ def add_flares(obj, N=10):
 
         net_flares_lc=net_flares_lc+flares_lc
 
+        # I have constraint on the flare amplitude from Gunther et al 2020, don't need to check
+        # if the flare is too small or not.
         try:
-            mask=np.where(flares_lc>1)[0]
+            mask=np.where(flares_lc>=0.01)[0]
             start=mask[0]
             stop=mask[-1]
         except:

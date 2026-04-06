@@ -24,9 +24,9 @@ def MAD(x):
     MAD : float
         Mean absolute deviation of the array.
     """
-    mean=np.mean(x)
+    mean=np.nanmean(x)
     abs_dev=abs(x-mean)
-    mad=np.median(abs_dev)
+    mad=np.nanmedian(abs_dev)
     return mad
 
 def get_dist_gaia(ra, dec):

@@ -275,7 +275,7 @@ def recover_flares(obj, run):
     for i,t in enumerate(injected_t_peak):
         sa_inj=injected_sa[i]
         # ax[0].axvline(t, label=sa, color=colors[i])
-        ax.axvline(t, label=sa_inj, color='blue', linestyle='--', linewidth=2)
+        ax.axvline(t, label=sa_inj, color='blue', linestyle='--', linewidth=2, alpha=0.3)
         ax.text(t, ax.get_ylim()[1], f"{sa_inj:0.2f}",
                     zorder = 10,
                     clip_on = False,
@@ -283,7 +283,7 @@ def recover_flares(obj, run):
     for i,t in enumerate(recovered_t_peak):
         sa_rec=recovered_sa[i]
         # ax[0].axvline(t, label=sa, color=colors[i])
-        ax.axvline(t, label=sa_rec, color='red', linestyle='-.')
+        ax.axvline(t, label=sa_rec, color='red', linestyle='dotted', alpha=1, linewidth=2)
         ax.text(t+0.005, ax.get_ylim()[1], f"{sa_rec:0.2f}",
                     zorder = 10,
                     clip_on = False,

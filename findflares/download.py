@@ -95,9 +95,14 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
         search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
         lc=search_lc.download(quality_bitmask=0)
 
+        raw_flux = np.array(lc['flux'].value,dtype=np.float64)
+        flux_norm = np.nanmedian(raw_flux) # if nanmedian not used then the array becomes nans
+        relative_flux = raw_flux/flux_norm
+
         # Making the raw lightcurve file
         obj.lc.full={"time":lc['time'].value.astype(np.float64),
-                       "flux":np.array(lc['flux'].value,dtype=np.float64),
+                       "flux":relative_flux,
+                    #    "flux":raw_flux,
                        "flux_err": np.array(lc['flux_err'].value,dtype=np.float64),
                        "quality": np.ma.getdata(lc["quality"])}
 
@@ -112,6 +117,7 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
         obj.star.teff=lc.meta['TEFF']
         obj.star.rad=lc.meta['RADIUS']
         obj.star.tess_mag=lc.meta['TESSMAG']
+        obj.star.flux_norm=flux_norm
 
         # Assigning the instrument properties
         obj.inst.sector=sector

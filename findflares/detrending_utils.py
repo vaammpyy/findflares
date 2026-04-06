@@ -37,9 +37,14 @@ def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
     map_soln : obj
         Holds the evaluated model at different time stamps and other information.
     """
+    # The GP model is not working with well with the relative flux units, to deal with this
+    # I will be performing the modelling part in the absolute flux units and then later 
+    # convert it into the relative flux units.
     x=obj.lc.full['time'][model_mask]
-    y=obj.lc.full['flux'][model_mask]
+    y=obj.lc.full['flux'][model_mask]*obj.star.flux_norm
     mad=MAD(y)
+    mean = np.nanmean(y)
+    # std = np.nanstd(y)
     yerr=obj.lc.full['flux_err'][model_mask]
 
     x_eval=obj.lc.full['time'][eval_mask]
@@ -49,16 +54,20 @@ def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
 
     with pm.Model() as model:
         # The mean flux of the time series
-        mean = pm.Normal("mean", mu=np.mean(y), sigma=10)
+        # mean = pm.Normal("mean", mu=mean, sigma=10e-5*mean)
+        mean = pm.Normal("mean", mu=mean, sigma=mad)
+        # mean = pm.Normal("mean", mu=1, sigma=10)
 
         # A jitter term describing excess white noise
-        log_jitter = pm.Uniform("log_jitter", lower=-3, upper=2)
+        # log_jitter = pm.Uniform("log_jitter", lower=-3, upper=2)
+        log_jitter = pm.Uniform("log_jitter", lower=np.log10(0.001*mad), upper=np.log10(mad))
         #log_jitter = pm.Normal("log_jitter", mu=np.log(np.var(y)), sigma=10)
 
         # The parameters of the RotationTerm kernel
         # This was the older bounds on the sigma_rot, changed on March 30th 2026
         # log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=2)
-        log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=np.log10(mad))
+        log_sigma_rot=pm.Uniform("log_sigma_rot", lower=np.log10(0.1*mad), upper=np.log10(mad))
+        # log_sigma_rot=pm.Uniform("log_sigma_rot", lower=-1, upper=np.log10(mad))
 
         log_period = pm.Normal("log_period", mu=np.log(period_peak), sigma=0.0001) # sigma 0.01
         period = pm.Deterministic("period", tt.exp(log_period))
@@ -92,6 +101,8 @@ def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
 
         # Optimize to find the maximum a posterior parameters
         map_soln = pmx.optimize(progressbar=False)
+        # scaling the predicted flux norm
+        map_soln['pred']/=obj.star.flux_norm
 
         for k, v in map_soln.items():
             if k == 'period':

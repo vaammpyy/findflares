@@ -195,6 +195,8 @@ class TESSLC:
                 Each entry represent the GP period of each segment.
             dist : float
                 Distance of the star cross-matched with GAIA DR3.
+            flux_norm : float
+                Normalization value of the flux.
             """
             self.ra=None
             self.dec=None
@@ -204,6 +206,7 @@ class TESSLC:
             self.prot=None
             self.prot_GP=[]
             self.dist=None
+            self.flux_norm = None
         
     class INST:
         def __init__(self):
