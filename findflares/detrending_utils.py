@@ -111,7 +111,7 @@ def RotationTerm_model(obj, model_mask, eval_mask, period_peak):
 
         return map_soln
 
-def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False, mad_th=6):
+def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=False, mask_outlier=False, iter=False, mad_th=6, period=None):
     """
     Detrends lightcurve data using gaussian process regression.
 
@@ -135,6 +135,8 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
         When True GP runs iteratively for each segment, by default False.
     mad_th : float, optional
         Sets the MAD factor for the outlier masking, by default 6.
+    period : float, optional
+        Rotation period of the star if known before running the pipeline.
 
     Attributes
     ----------
@@ -206,7 +208,11 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                     comb_model_mask = outlier_mask & comb_model_mask
                     comb_period_model_mask = outlier_mask & comb_period_model_mask
 
-                period_peak=get_period(obj, comb_period_model_mask)
+                if i == 1 and period is not None:
+                    period_peak = period
+                else:
+                    period_peak=get_period(obj, comb_period_model_mask)
+
                 eval_mask=get_mask(obj, segments=[seg])
                 map_soln=RotationTerm_model(obj, model_mask=comb_model_mask, eval_mask=eval_mask, period_peak=period_peak)
 

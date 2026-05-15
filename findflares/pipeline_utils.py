@@ -2,6 +2,8 @@ import multiprocessing as mp
 from datetime import datetime
 from contextlib import redirect_stdout
 from time import time
+import sys
+from astropy import units as u
 
 from findflares.lc_class import *
 from findflares.imports import *
@@ -42,6 +44,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
     print(f"META::TIC={tic}", flush=True)
     cad_list=[20, 120]
     print(f"Searching for observations with CADENCE: {cad_list}")
+    error=None
     try:
         if input_cadence and input_sector:
             search_result = [(tic, input_sector, input_cadence)]
@@ -59,13 +62,15 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                     # pipeline(TIC, sector, cad)
                     print("****************")
                     lc=TESSLC(tic, data_dir+"/"+str(TIC))
-                    # lc.download_lc(sector=sector, cadence=cadence, segment=True, clean=True)
+                    # lc.download_lc(sector=sector, cadence=cad, segment=True, clean=True)
                     try:
                         lc.download_lc(sector=sector, cadence=cad, clean=True)
                     except HTTPError:
-                        print("Download failed. Donwloading next sector.")
+                        error="HTTPError"
+                        print("Download failed. Downloading next sector.")
                         continue
                     except ConnectionError:
+                        error="ConnectionError"
                         print("ConnectionError, failed to connect to the server.")
                         continue
                     lc.detrend()
@@ -90,21 +95,156 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
-                        irec.pickleObj()
+                        # irec.pickleObj()
                     else:
                         lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_model_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="model_overlay", save_fig=True)
-                        lc.pickleObj()
-                    print("****************")
-                    print("STATUS::COMPLETED", flush=True)
+                        # lc.pickleObj()
         else:
             print("No data found!")
     except HTTPError:
+        error="HTTPError"
         print("HTTPError, failed to fetch data.")
     except ConnectionError:
+        error="ConnectionError"
         print("ConnectionError, failed to connect to the server.")
+    finally:
+        if injrec:
+            irec.pickleObj()
+        else:
+            lc.pickleObj()
+        if sys.exc_info()[0] is None and error is None:
+            print("****************")
+            print("STATUS::SUCCESS!", flush=True)
+        else:
+            print("****************")
+            print(f"STATUS::{sys.exc_info()[0]} {error}::FAILURE :(", flush=True)
+    
+def tess_pipeline_mpi(tic, data_dir, redo=True, injrec=0, cadence=0, sector=0, period=None, distance=None, calc_energy=True):
+    """
+    Runs pipeline for TESS Lightcurves, using mpi4py interface.
+
+    Runs pipeline for TESS Lightcurves, and stores output in data_dir. Uses mpi4py interface.
+
+    Parameters
+    ----------
+    tic : int
+        TIC
+    data_dir : str
+        Directory to store the results.
+    redo : bool, optional
+        If True re-runs the pipeline for existing TICs.
+    injrec : int, optional
+        Runs Injection Recovery if value is 1, by default value is 0.
+    cadence : int, optional
+        Cadence of the observation for analysis, by default value is 0
+        pipeline runs over both 120s and 20s data.
+    sector : int, optional
+        Sector of the observation for analysis, by default value is 0
+        pipeline runs over all avialable sectors.
+    period : float, optional
+        Rotation period of the star if known.
+    distance : float, optional 
+        Distance to the star if known, in parsecs. If not known then pipeline will attempt to fetch the distance.
+    calc_energy : bool, optional
+        If true then calculated energy of the flares, by default true.
+    
+    Output
+    -------
+    Generates plots and stores pickles.
+    """
+    print(f"RE-RUN::{redo}")
+    print(f"Inj-Rec::{injrec}")
+    print("STATUS::STARTED")
+    print("###################")
+    print(f"META::TIC={tic}", flush=True)
+    cad_list=[20, 120]
+    print(f"Searching for observations with CADENCE: {cad_list}")
+    error=None
+    already_exist=False
+    try:
+        if cadence and sector:
+            search_result = [(tic, sector, cadence)]
+        else:
+            search_result = search_lightcurve(tic, cadence=cad_list, ret_list=True)
+        if search_result:
+            for result in search_result:
+                TIC, sector, cad = result
+                # checking if the pipeline has already run or not
+                if os.path.isfile(f"{data_dir}/{TIC}/{sector}_{cad}.pkl") and redo==False:
+                    print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}", flush=True)
+                    print("Already exists.")
+                    already_exist=True
+                else:
+                    print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}", flush=True)
+                    # pipeline(TIC, sector, cad)
+                    print("****************")
+                    lc=TESSLC(tic, data_dir+"/"+str(TIC))
+                    # lc.download_lc(sector=sector, cadence=cad, segment=True, clean=True)
+                    try:
+                        lc.download_lc(sector=sector, cadence=cad, clean=True)
+                    except HTTPError:
+                        error="HTTPError"
+                        print("Download failed. Downloading next sector.")
+                        continue
+                    except ConnectionError:
+                        error="ConnectionError"
+                        print("ConnectionError, failed to connect to the server.")
+                        continue
+                    lc.star.dist=distance*u.pc
+                    if period:
+                        lc.detrend(period=period)
+                    else:
+                        lc.detrend()
+                    lc.findflares()
+                    lc.flare_energy(calc_energy=calc_energy)
+                    if injrec:
+                        print("Injection recovery test started.")
+                        irec=InjRec(lc)
+                        for k in range(injrec):
+                            irec.run_injection_recovery(run=k+1, plot=False)
+                        print("Injection recovery test completed.")
+                        plot_ir_results(irec, mode='rec_frac', save_fig=True)
+                        plot_ir_results(irec, mode='rec_frac_sa_ampl', save_fig=True)
+                        plot_ir_results(irec, mode='rec_frac_sa_fwhm', save_fig=True)
+                        if irec.star.dist is not None:
+                            plot_ir_results(irec, mode='erg_comp', save_fig=True)
+                            plot_ir_results(irec, mode='fp', save_fig=True)
+                            plot_ir_results(irec, mode='rec_frac_erg', save_fig=True)
+                        else:
+                            print("PIPELINE::COMMENT::Distance not found skipping energy plots.")
+                        plot_ir_results(irec, mode='rec_frac_spot_amplitude', save_fig=True)
+                        plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
+                        plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
+                        plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
+                        # irec.pickleObj()
+                    else:
+                        lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
+                        lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
+                        lc.plot(mode="flare_model_overlay", show_flares=True, show_transits=True, save_fig=True)
+                        lc.plot(mode="model_overlay", save_fig=True)
+                        # lc.pickleObj()
+        else:
+            print("No data found!")
+    except HTTPError:
+        error="HTTPError"
+        print("HTTPError, failed to fetch data.")
+    except ConnectionError:
+        error="ConnectionError"
+        print("ConnectionError, failed to connect to the server.")
+    finally:
+        if injrec and already_exist == False:
+            irec.pickleObj()
+        elif already_exist == False:
+            lc.pickleObj()
+        if sys.exc_info()[0] is None and error is None:
+            print("****************")
+            print("STATUS::SUCCESS!", flush=True)
+        else:
+            print("****************")
+            print(f"STATUS::{sys.exc_info()[0]} {error}::FAILURE :(", flush=True)
     
 def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, process_index):
     """
@@ -203,4 +343,3 @@ def run_pipeline_py(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1
 # here I'll add a separate module for running the pipeline for slurm process
 # This new process will take in a TIC derived from a TIC list and then 
 # start the TESS_pipeline module for that TIC.
-

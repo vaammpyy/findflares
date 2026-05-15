@@ -329,7 +329,7 @@ class TESSLC:
         """
         clean_lightcurve(self)
     
-    def detrend(self, iter_detrend=True, mask_transit=True):
+    def detrend(self, period=None, iter_detrend=True, mask_transit=True):
         """
         Detrends lightcurve, adaptive iteration of GP.
 
@@ -339,39 +339,45 @@ class TESSLC:
 
         Parameters
         ----------
+        period : float, optional
+            Rotation period of the star if known. If value is given then analysis proceeds with the given period, else median filtering is tried first to look for periodicity.
         iter_detrend : bool, optional
             If True iterative detrending will be performed using the flare masked method, by default True.
         mask_transit : bool, optional
             If True then in the second iteration of detrending process transits will be masked, by default True.
         """
         print("STEP::DETREND::START", flush=True)
-        Median_detrend(self)
-
-        #checking for rotation
-        time=self.lc.detrended['time']
-        flux=self.lc.detrended['flux']
-        flux_err=self.lc.detrended['flux_err']
-        mean=np.median(flux)
-        # std=np.std(flux)
-        flux_dev=abs(flux-mean)
-        mad=MAD(flux)
-        outlier_mask=flux_dev<1.5*mad
-        gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=24, fbeg=1/14)
-        fap=gls.FAP()
-        fap_lvl = 0.01
-        # pmax=gls.pmax
-        # pwr_lvl=gls.powerLevel(0.001)
-        period=gls.best['P']
-
-        # if pmax<pwr_lvl:
-        if fap > fap_lvl:
-            rotation= False
-            # print(f"PWR-DIFF::{pmax-pwr_lvl}")
-            print(f"FAP::{fap}")
+        if period:
+            rotation=True
+            Median_detrend(self) # it's here only to initialize the detrended attribute
         else:
-            rotation= True
-            # print(f"PWR-DIFF::{pmax-pwr_lvl}")
-            print(f"FAP::{fap}")
+            Median_detrend(self)
+
+            #checking for rotation
+            time=self.lc.detrended['time']
+            flux=self.lc.detrended['flux']
+            flux_err=self.lc.detrended['flux_err']
+            mean=np.median(flux)
+            # std=np.std(flux)
+            flux_dev=abs(flux-mean)
+            mad=MAD(flux)
+            outlier_mask=flux_dev<1.5*mad
+            gls=Gls(((time[outlier_mask], flux[outlier_mask], flux_err[outlier_mask])), fend=24, fbeg=1/14)
+            fap=gls.FAP()
+            fap_lvl = 0.01
+            # pmax=gls.pmax
+            # pwr_lvl=gls.powerLevel(0.001)
+            period=gls.best['P']
+
+            # if pmax<pwr_lvl:
+            if fap > fap_lvl:
+                rotation= False
+                # print(f"PWR-DIFF::{pmax-pwr_lvl}")
+                print(f"FAP::{fap}")
+            else:
+                rotation= True
+                # print(f"PWR-DIFF::{pmax-pwr_lvl}")
+                print(f"FAP::{fap}")
         if rotation:
             print("Rotation found.")
             self.star.prot=period
@@ -379,7 +385,7 @@ class TESSLC:
             print("Segmentation started.")
             self.segment_lc()
             print("Segmentation completed.")
-            GaussianProcess_detrend(self, mask_flare=True, mask_transit=mask_transit, mask_outlier=True, iter=iter_detrend)
+            GaussianProcess_detrend(self, mask_flare=True, mask_transit=mask_transit, mask_outlier=True, iter=iter_detrend, period=period)
         else:
             print("Rotation not found.")
             # if iter_detrend:
@@ -481,11 +487,18 @@ class TESSLC:
 
         Pickles TESSLC object and stores it in data_dir/TICID/sector_cadence.pkl (data_dir defined in defaults).
         """
-        fObj = open(f"{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+        if self.inst.sector is None or self.inst.cadence is None:
+            fObj = open(f"{self.dir}/sector_cadence.pkl", 'wb')
+        else:
+            fObj = open(f"{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+        
         pickle.dump(self, fObj)
         fObj.close() 
         print("Pickled successfully.")
-        print(f"PATH::{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")
+        if self.inst.sector is None or self.inst.cadence is None:
+            print(f"PATH::{self.dir}/sector_cadence.pkl")
+        else:
+            print(f"PATH::{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")
     
 class InjRec(TESSLC):
     """
@@ -642,8 +655,15 @@ class InjRec(TESSLC):
 
         Pickles InjRec object and stores it in data_dir/TICID/ir_sector_cadence.pkl (data_dir defined in defaults).
         """
-        fObj = open(f"{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+        if self.inst.sector is None or self.inst.cadence is None:
+            fObj = open(f"{self.dir}/ir_sector_cadence.pkl", 'wb')
+        else:
+            fObj = open(f"{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+
         pickle.dump(self, fObj)
         fObj.close() 
         print("Pickled successfully.")
-        print(f"PATH::{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")
+        if self.inst.sector is None or self.inst.cadence is None:
+            print(f"PATH::{self.dir}/ir_sector_cadence.pkl")
+        else:
+            print(f"PATH::{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")
