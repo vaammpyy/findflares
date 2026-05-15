@@ -5,3 +5,5 @@ defaults.py
 !./tests/output/.gitkeep
 **/build/*
 generate_slurm_file.py
+run_pipeline.slurm
+pipeline_mpi.slurm
