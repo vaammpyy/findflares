@@ -122,7 +122,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
             print("****************")
             print(f"STATUS::{sys.exc_info()[0]} {error}::FAILURE :(", flush=True)
     
-def tess_pipeline_mpi(tic, data_dir, redo=True, injrec=0, cadence=0, sector=0, period=None, distance=None, calc_energy=True):
+def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0, sector=0, period=None, distance=None, calc_energy=True):
     """
     Runs pipeline for TESS Lightcurves, using mpi4py interface.
 
@@ -134,6 +134,8 @@ def tess_pipeline_mpi(tic, data_dir, redo=True, injrec=0, cadence=0, sector=0, p
         TIC
     data_dir : str
         Directory to store the results.
+    lc_dir : str, optional
+        Directory storing the downloaded lightcurves.
     redo : bool, optional
         If True re-runs the pipeline for existing TICs.
     injrec : int, optional
@@ -184,7 +186,7 @@ def tess_pipeline_mpi(tic, data_dir, redo=True, injrec=0, cadence=0, sector=0, p
                     lc=TESSLC(tic, data_dir+"/"+str(TIC))
                     # lc.download_lc(sector=sector, cadence=cad, segment=True, clean=True)
                     try:
-                        lc.download_lc(sector=sector, cadence=cad, clean=True)
+                        lc.download_lc(sector=sector, cadence=cad, clean=True, lc_dir=lc_dir)
                     except HTTPError:
                         error="HTTPError"
                         print("Download failed. Downloading next sector.")

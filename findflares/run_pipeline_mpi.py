@@ -112,6 +112,15 @@ def main():
         cadence = 120
         period = star_row['sector_periods']
         distance = star_row['distance']
+        if os.environ.get("USER") == "krohan":
+            PATH_COLUMN = "path_to_lc"
+        else:
+            PATH_COLUMN = "path_to_local_lc"
+        try:
+            lc_path = star_row[PATH_COLUMN]
+        except:
+            lc_path=None
+
         log_file_path = os.path.join(log_dir, f"TIC{TIC}_S{sector:03d}_C{cadence}.log")
 
         with open(log_file_path, 'w') as f:
@@ -122,10 +131,10 @@ def main():
             try:
                 mem_before = get_memory_usage()
                 if injrec:
-                    tess_pipeline_mpi(tic=TIC, data_dir=DATA_DIR, redo=rerun, injrec=1, cadence=cadence, sector=sector, period=period, distance=distance, calc_energy=True)
+                    tess_pipeline_mpi(tic=TIC, data_dir=DATA_DIR, lc_dir=lc_path,redo=rerun, injrec=1, cadence=cadence, sector=sector, period=period, distance=distance, calc_energy=True)
                     stop_time=time.time()
                 else:
-                    tess_pipeline_mpi(tic=TIC, data_dir=DATA_DIR, redo=rerun, injrec=0, cadence=cadence, sector=sector, period=period, distance=distance, calc_energy=True)
+                    tess_pipeline_mpi(tic=TIC, data_dir=DATA_DIR, lc_dir=lc_path, redo=rerun, injrec=0, cadence=cadence, sector=sector, period=period, distance=distance, calc_energy=True)
                     stop_time=time.time()
                 mem_after = get_memory_usage()
             except Exception as e:

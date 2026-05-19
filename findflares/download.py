@@ -42,7 +42,7 @@ def search_lightcurve(tic, cadence=20, mission="TESS", author="SPOC", ret_list=F
     else:
         print(search_result)
 
-def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'):
+def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC', lc_dir=None):
     """
     Searches or downloads the lightcurve.
 
@@ -60,6 +60,8 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
         Observation mission, by default 'TESS'.
     author : str, optional
         Author of the data product, by default 'SPOC'.
+    lc_dir : str, optional
+        Path of the downloaded lightcurve, by default None.
 
     Attributes
     ----------
@@ -87,13 +89,22 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
         Instrument name for the observation.
     """
     TIC_ID=f"TIC {obj.TIC}"
+    lc_downloaded = False
+
+    if lc_dir is not None:
+        lc_downloaded = True
 
     if sector is None:
         search_results=lk.search_lightcurve(TIC_ID, cadence=cadence, mission=mission, author=author)
         print(search_results)
     else:
-        search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
-        lc=search_lc.download(quality_bitmask=0)
+        if lc_downloaded:
+            print(f"PIPELINE::DOWNLOAD::File found::{lc_dir}")
+            lc = lk.read(lc_dir, quality_bitmask=0)
+        else:
+            print(f"PIPELINE::DOWNLOAD::File not found.")
+            search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
+            lc=search_lc.download(quality_bitmask=0)
 
         raw_flux = np.array(lc['flux'].value,dtype=np.float64)
         flux_norm = np.nanmedian(raw_flux) # if nanmedian not used then the array becomes nans

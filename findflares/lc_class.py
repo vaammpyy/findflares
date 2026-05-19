@@ -256,7 +256,7 @@ class TESSLC:
             self.notes = None
             self.hostname = None
 
-    def download_lc(self,sector, cadence=None, mission='TESS', author="SPOC", segment=False, clean=False):
+    def download_lc(self,sector, cadence=None, mission='TESS', author="SPOC", segment=False, clean=False, lc_dir=None):
         """
         Downloads the TESS lightcurve data for the star.
 
@@ -274,13 +274,15 @@ class TESSLC:
             Set to True to generate the segment mask, by default False.
         clean : bool, optional
             Set to True to clean the lightcurve, by default False.
+        lc_dir : str, optional
+            If true will load up the lightcurve from the directory.
         """
         download_time_start=time()
         print("STEP::DOWNLOAD::START", flush=True)
         if cadence == None:
-            get_lightcurve(self, sector=sector, mission=mission, author=author)
+            get_lightcurve(self, sector=sector, mission=mission, author=author, lc_dir=lc_dir)
         else: 
-            get_lightcurve(self, cadence=cadence, sector=sector, mission=mission, author=author)
+            get_lightcurve(self, cadence=cadence, sector=sector, mission=mission, author=author, lc_dir=lc_dir)
         print("STEP::DOWNLOAD::END", flush=True)
         download_time_stop=time()
         print(f"PIPELINE::DWNLDTIME::{download_time_stop-download_time_start:.2f}", flush=True)
