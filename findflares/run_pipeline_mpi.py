@@ -15,6 +15,16 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
+# 2. Grab the live Slurm Job ID
+job_id = os.environ.get("SLURM_JOB_ID", "local")
+
+# 3. Map this specific task to its own isolated sandbox folder on scratch
+unique_task_dir = f"/home/krohan/scratch/pytensor_job_{job_id}/task_{rank}"
+os.makedirs(unique_task_dir, exist_ok=True)
+
+# 4. Bind PyTensor strictly to this sandbox path
+os.environ["PYTENSOR_FLAGS"] = f"base_compiledir={unique_task_dir}"
+
 def str2bool(v):
     if isinstance(v, bool):
         return v
