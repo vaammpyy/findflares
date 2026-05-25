@@ -137,8 +137,17 @@ def main():
             data_frame["ir_pkl_path"] = [f"{DATA_DIR}/{row.TICID}/ir_{row.sectors}_120.pkl" for _, row in data_frame.iterrows()]
             data_frame[['TICID','sectors', 'ir_pkl_path']].to_csv(f"{log_dir}/ir_star_list.csv", index=False)
         # chunking the data to be given to each worker.
-        data_frame = data_frame.copy()
-        chunks = np.array_split(data_frame, size)
+        # --- CRITICAL FIX HERE ---
+        # Convert the DataFrame into a native list of pure Python dictionaries.
+        # This completely unhooks the data from the problematic NumPy/Pandas C-API layouts.
+        list_of_records = data_frame.to_dict(orient='records')
+        
+        # Split the native Python list into chunks across ranks
+        chunks = np.array_split(list_of_records, size)
+        
+        # Convert NumPy array fragments back to regular python lists of dicts
+        chunks = [list(chunk) for chunk in chunks]
+        print("Chunks split completed successfully via native Python objects.")
     else:
         chunks = None
 
