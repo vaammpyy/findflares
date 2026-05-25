@@ -176,7 +176,7 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
             for result in search_result:
                 TIC, sector, cad = result
                 # checking if the pipeline has already run or not
-                if os.path.isfile(f"{data_dir}/{TIC}/{sector}_{cad}.pkl") and redo==False:
+                if os.path.isfile(f"{data_dir}/{TIC}/{sector}_{cad}.pkl") and redo==False and not injrec:
                     print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}", flush=True)
                     print("Already exists.")
                     already_exist=True
