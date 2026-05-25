@@ -1,29 +1,57 @@
 from mpi4py import MPI
+import os
+import sys
+from pathlib import Path
+
+# # setting up the MPI environment
+# comm = MPI.COMM_WORLD
+# rank = comm.Get_rank()
+# size = comm.Get_size()
+
+# # 2. Grab the live Slurm Job ID
+# job_id = os.environ.get("SLURM_JOB_ID", "local")
+
+
+# # 3. Map this specific task to its own isolated sandbox folder on scratch
+# unique_task_dir = f"/home/krohan/scratch/pytensor_job_{job_id}/task_{rank}"
+# os.makedirs(unique_task_dir, exist_ok=True)
+
+# # 4. Bind PyTensor strictly to this sandbox path
+# os.environ["PYTENSOR_FLAGS"] = f"base_compiledir={unique_task_dir}"
+
+# 1. Setting up the MPI environment correctly
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+# 2. Grab the live Slurm Job ID (None if running locally)
+job_id = os.environ.get("SLURM_JOB_ID")
+
+# 3. Determine the base directory depending on the environment
+if job_id:
+    # Cluster environment: High-speed scratch space
+    base_dir = Path(f"/home/krohan/scratch/pytensor_job_{job_id}")
+else:
+    # Local Linux environment: Uses ~/.cache/pytensor_local
+    home_cache = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+    base_dir = Path(home_cache) / "pytensor_local"
+
+# 4. CRITICAL FIX: Use the actual MPI rank for isolation, NOT SLURM_PROCID
+unique_task_dir = base_dir / f"task_{rank}"
+unique_task_dir.mkdir(parents=True, exist_ok=True)
+
+# 5. Bind PyTensor strictly to this sandbox path
+os.environ["PYTENSOR_FLAGS"] = f"base_compiledir={unique_task_dir}"
+print(f"Rank {rank}: PyTensor compile directory set to: {unique_task_dir}")
+
 import pandas as pd
 import argparse
 import numpy as np
-import os
-import sys
 import time
 import traceback
 import psutil
 
 from findflares.pipeline_utils import tess_pipeline_mpi
-
-# setting up the MPI environment
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
-
-# 2. Grab the live Slurm Job ID
-job_id = os.environ.get("SLURM_JOB_ID", "local")
-
-# 3. Map this specific task to its own isolated sandbox folder on scratch
-unique_task_dir = f"/home/krohan/scratch/pytensor_job_{job_id}/task_{rank}"
-os.makedirs(unique_task_dir, exist_ok=True)
-
-# 4. Bind PyTensor strictly to this sandbox path
-os.environ["PYTENSOR_FLAGS"] = f"base_compiledir={unique_task_dir}"
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -94,7 +122,7 @@ def main():
         master_log_path = os.path.join(log_dir, "master_process.log")
         # We use 'a' (append) so we don't accidentally wipe it, 
         # though 'w' is fine for a fresh run.
-        m_log = open(master_log_path, 'w')
+        m_log = open(master_log_path, 'w', buffering=1)
         sys.stdout = m_log
         sys.stderr = m_log
         
@@ -105,7 +133,9 @@ def main():
         data_frame = pd.read_csv(TARGET_PATH, low_memory=False)
         # sampling the stars for injection recovery
         if injrec:
-            data_frame=data_frame.sample(n=injrec)
+            data_frame=data_frame.sample(n=injrec).reset_index(drop=True)
+            data_frame["ir_pkl_path"] = [f"{DATA_DIR}/{row.TICID}/ir_{row.sectors}_120.pkl" for _, row in data_frame.iterrows()]
+            data_frame[['TICID','sectors', 'ir_pkl_path']].to_csv(f"{log_dir}/ir_star_list.csv", index=False)
         # chunking the data to be given to each worker.
         chunks = np.array_split(data_frame, size)
     else:
@@ -158,8 +188,12 @@ def main():
 
             # RESET: Point output back to the appropriate 'Home'
             if rank == 0:
-                sys.stdout = m_log
-                sys.stderr = m_log
+                if m_log and not m_log.closed:
+                    sys.stdout = m_log
+                    sys.stderr = m_log
+                else:
+                    sys.stdout = terminal_stdout
+                    sys.stderr = terminal_stdout
             else:
                 sys.stdout = terminal_stdout
                 sys.stderr = terminal_stdout

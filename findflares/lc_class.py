@@ -483,16 +483,22 @@ class TESSLC:
             get_flare_energies(self)
         get_flare_spot_amplitude(self)
 
-    def pickleObj(self):
+    def pickleObj(self, failed=False):
         """
         Pickles TESSLC object.
 
         Pickles TESSLC object and stores it in data_dir/TICID/sector_cadence.pkl (data_dir defined in defaults).
         """
-        if self.inst.sector is None or self.inst.cadence is None:
-            fObj = open(f"{self.dir}/sector_cadence.pkl", 'wb')
+        if failed:
+            if self.inst.sector is None or self.inst.cadence is None:
+                fObj = open(f"{self.dir}/failed_sector_cadence.pkl", 'wb')
+            else:
+                fObj = open(f"{self.dir}/failed_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
         else:
-            fObj = open(f"{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+            if self.inst.sector is None or self.inst.cadence is None:
+                fObj = open(f"{self.dir}/sector_cadence.pkl", 'wb')
+            else:
+                fObj = open(f"{self.dir}/{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
         
         pickle.dump(self, fObj)
         fObj.close() 
@@ -651,16 +657,22 @@ class InjRec(TESSLC):
         print(f"Inj-Rec run::{run} completed.")
         print("^^^^^^^^^^^^^^")
 
-    def pickleObj(self):
+    def pickleObj(self, failed = False):
         """
         Pickles InjRec object.
 
         Pickles InjRec object and stores it in data_dir/TICID/ir_sector_cadence.pkl (data_dir defined in defaults).
         """
-        if self.inst.sector is None or self.inst.cadence is None:
-            fObj = open(f"{self.dir}/ir_sector_cadence.pkl", 'wb')
+        if failed:
+            if self.inst.sector is None or self.inst.cadence is None:
+                fObj = open(f"{self.dir}/failed_ir_sector_cadence.pkl", 'wb')
+            else:
+                fObj = open(f"{self.dir}/failed_ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
         else:
-            fObj = open(f"{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+            if self.inst.sector is None or self.inst.cadence is None:
+                fObj = open(f"{self.dir}/ir_sector_cadence.pkl", 'wb')
+            else:
+                fObj = open(f"{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
 
         pickle.dump(self, fObj)
         fObj.close() 

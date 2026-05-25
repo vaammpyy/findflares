@@ -166,6 +166,7 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
     print(f"Searching for observations with CADENCE: {cad_list}")
     error=None
     already_exist=False
+    failed = True
     try:
         if cadence and sector:
             search_result = [(tic, sector, cadence)]
@@ -205,6 +206,8 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
                     if injrec:
                         print("Injection recovery test started.")
                         irec=InjRec(lc)
+                        a=0
+                        print(100/a)
                         for k in range(injrec):
                             irec.run_injection_recovery(run=k+1, plot=False)
                         print("Injection recovery test completed.")
@@ -222,12 +225,14 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
                         # irec.pickleObj()
+                        failed = False
                     else:
                         lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_model_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="model_overlay", save_fig=True)
                         # lc.pickleObj()
+                        failed=False
         else:
             print("No data found!")
     except HTTPError:
@@ -238,9 +243,9 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
         print("ConnectionError, failed to connect to the server.")
     finally:
         if injrec and already_exist == False:
-            irec.pickleObj()
+            irec.pickleObj(failed = failed)
         elif already_exist == False:
-            lc.pickleObj()
+            lc.pickleObj(failed = failed)
         if sys.exc_info()[0] is None and error is None:
             print("****************")
             print("STATUS::SUCCESS!", flush=True)
