@@ -156,7 +156,7 @@ def main():
 
     terminal_stdout = sys.stdout
 
-    for _, star_row in my_chunk.iterrows():
+    for star_row in my_chunk:
         TIC = star_row['TICID']
         sector = star_row['sectors']
         cadence = 120
