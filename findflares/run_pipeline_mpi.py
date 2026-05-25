@@ -137,6 +137,7 @@ def main():
             data_frame["ir_pkl_path"] = [f"{DATA_DIR}/{row.TICID}/ir_{row.sectors}_120.pkl" for _, row in data_frame.iterrows()]
             data_frame[['TICID','sectors', 'ir_pkl_path']].to_csv(f"{log_dir}/ir_star_list.csv", index=False)
         # chunking the data to be given to each worker.
+        data_frame = data_frame.copy()
         chunks = np.array_split(data_frame, size)
     else:
         chunks = None
