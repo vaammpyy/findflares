@@ -206,8 +206,6 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
                     if injrec:
                         print("Injection recovery test started.")
                         irec=InjRec(lc)
-                        a=0
-                        print(100/a)
                         for k in range(injrec):
                             irec.run_injection_recovery(run=k+1, plot=False)
                         print("Injection recovery test completed.")
