@@ -109,7 +109,7 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
                 split_path = lc_dir.split("/")
                 len_trim = len(split_path)-4
                 download_dir = "/".join(split_path[0:len_trim])
-                
+                search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
                 lc=search_lc.download(download_dir=download_dir,quality_bitmask=0)
         else:
             print(f"PIPELINE::DOWNLOAD::File not found.")
