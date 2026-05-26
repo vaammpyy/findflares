@@ -100,7 +100,17 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
     else:
         if lc_downloaded:
             print(f"PIPELINE::DOWNLOAD::File found::{lc_dir}")
-            lc = lk.read(lc_dir, quality_bitmask=0)
+            try:
+                lc = lk.read(lc_dir, quality_bitmask=0)
+            except:
+                print(f"PIPELINE::DOWNLOAD::File corrupt::{lc_dir}")
+                print(f"PIPELINE::DOWNLOAD::Attempting re-download.")
+                search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
+                split_path = lc_dir.split("/")
+                len_trim = len(split_path)-4
+                download_dir = "/".join(split_path[0:len_trim])
+                
+                lc=search_lc.download(download_dir=download_dir,quality_bitmask=0)
         else:
             print(f"PIPELINE::DOWNLOAD::File not found.")
             search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
