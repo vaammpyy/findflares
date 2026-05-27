@@ -101,7 +101,7 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
         if lc_downloaded:
             print(f"PIPELINE::DOWNLOAD::File found::{lc_dir}")
             try:
-                lc = lk.read(lc_dir, quality_bitmask=0, memmap=False)
+                lc = lk.read(lc_dir, quality_bitmask=0)
             except:
                 print(f"PIPELINE::DOWNLOAD::File corrupt::{lc_dir}")
                 print(f"PIPELINE::DOWNLOAD::Attempting re-download.")

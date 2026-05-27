@@ -55,6 +55,8 @@ import argparse
 import numpy as np
 import traceback
 import psutil
+from astropy.io import fits
+fits.Conf.use_memmap.set(False)
 
 from findflares.pipeline_utils import tess_pipeline_mpi
 
