@@ -2,6 +2,8 @@ from mpi4py import MPI
 import os
 import sys
 from pathlib import Path
+import time
+import random
 
 # # setting up the MPI environment
 # comm = MPI.COMM_WORLD
@@ -44,13 +46,15 @@ unique_task_dir.mkdir(parents=True, exist_ok=True)
 os.environ["PYTENSOR_FLAGS"] = f"base_compiledir={unique_task_dir}"
 print(f"Rank {rank}: PyTensor compile directory set to: {unique_task_dir}")
 
+# adding a jitter to desynchronise the processes.
+jitter_time = random.uniform(0.1, 5.0)
+time.sleep(jitter_time)
+
 import pandas as pd
 import argparse
 import numpy as np
-import time
 import traceback
 import psutil
-import random
 
 from findflares.pipeline_utils import tess_pipeline_mpi
 
@@ -131,7 +135,7 @@ def main():
         print(f"Directory: {log_dir}")
         print("-" * 40)
         # loading the dataframe
-        data_frame = pd.read_csv(TARGET_PATH, low_memory=False)
+        data_frame = pd.read_csv(TARGET_PATH, low_memory=False).sample(N=30)
         # sampling the stars for injection recovery
         if injrec:
             data_frame=data_frame.sample(n=injrec).reset_index(drop=True)
@@ -179,9 +183,6 @@ def main():
             sys.stderr = f
 
             start_time=time.time()
-            # adding a jitter to desynchronise the processes.
-            jitter_time = random.uniform(0.1, 5.0)
-            time.sleep(jitter_time)
             try:
                 mem_before = get_memory_usage()
                 if injrec:
