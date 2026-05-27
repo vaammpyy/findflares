@@ -135,7 +135,7 @@ def main():
         print(f"Directory: {log_dir}")
         print("-" * 40)
         # loading the dataframe
-        data_frame = pd.read_csv(TARGET_PATH, low_memory=False)
+        data_frame = pd.read_csv(TARGET_PATH, low_memory=False).sample(n=30)
         # sampling the stars for injection recovery
         if injrec:
             data_frame=data_frame.sample(n=injrec).reset_index(drop=True)
