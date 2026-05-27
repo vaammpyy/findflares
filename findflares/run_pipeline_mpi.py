@@ -50,6 +50,7 @@ import numpy as np
 import time
 import traceback
 import psutil
+import random
 
 from findflares.pipeline_utils import tess_pipeline_mpi
 
@@ -178,6 +179,9 @@ def main():
             sys.stderr = f
 
             start_time=time.time()
+            # adding a jitter to desynchronise the processes.
+            jitter_time = random.uniform(0.1, 5.0)
+            time.sleep(jitter_time)
             try:
                 mem_before = get_memory_usage()
                 if injrec:
