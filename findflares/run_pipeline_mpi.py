@@ -177,6 +177,7 @@ def main():
             lc_path = star_row[PATH_COLUMN]
         except:
             lc_path=None
+        lc_path=None # download lightcurve in all the cases
 
         log_file_path = os.path.join(log_dir, f"TIC{TIC}_S{sector:03d}_C{cadence}.log")
 
