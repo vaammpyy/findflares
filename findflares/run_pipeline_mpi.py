@@ -7,6 +7,7 @@ import random
 
 os.environ["FLEXIBLAS"] = "blis"
 os.environ["FLEXIBLAS64"] = "blis"
+os.environ["BLIS_ARCH_TYPE"] = "generic"
 
 # # setting up the MPI environment
 # comm = MPI.COMM_WORLD
