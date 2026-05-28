@@ -1,5 +1,6 @@
 import lightkurve as lk
 import numpy as np
+import pandas as pd
 
 def search_lightcurve(tic, cadence=20, mission="TESS", author="SPOC", ret_list=False):
     """
@@ -105,7 +106,7 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
             except:
                 print(f"PIPELINE::DOWNLOAD::File corrupt::{lc_dir}")
                 print(f"PIPELINE::DOWNLOAD::Attempting re-download.")
-                if lc_dir is not None:
+                if pd.notna(lc_dir):
                     search_lc=lk.search_lightcurve(TIC_ID, cadence=cadence, sector=sector, mission=mission, author=author)
                     split_path = lc_dir.split("/")
                     len_trim = len(split_path)-4
