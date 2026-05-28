@@ -5,6 +5,9 @@ from pathlib import Path
 import time
 import random
 
+os.environ["FLEXIBLAS"] = "openblas"
+os.environ["FLEXIBLAS64"] = "openblas"
+
 # # setting up the MPI environment
 # comm = MPI.COMM_WORLD
 # rank = comm.Get_rank()
