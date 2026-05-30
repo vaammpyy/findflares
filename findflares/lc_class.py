@@ -629,7 +629,7 @@ class InjRec(TESSLC):
         replace_flares_w_gaussian_noise_and_clean_attr(self)
         print("Flare removal and LC cleaning completed.")
     
-    def run_injection_recovery(self, run, plot=False):
+    def run_injection_recovery(self, run, plot=False, period=None):
         """
         Runs injection recovery pipeline.
 
@@ -637,6 +637,8 @@ class InjRec(TESSLC):
         ----------
         run : int
             Run number of the injection recovery test
+        period : float
+            Period of the star if known.
 
         Attributes
         ----------
@@ -647,7 +649,11 @@ class InjRec(TESSLC):
         print(f"Inj-Rec run::{run} started.")
         self.remove_flares()
         add_flares(self, N=10)
-        self.detrend()
+        if period:
+            self.detrend(period=period)
+        else:
+            self.detrend()
+        # self.detrend()
         self.findflares()
         self.flare_energy()
         recover_flares(self, run)

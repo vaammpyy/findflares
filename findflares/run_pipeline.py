@@ -50,6 +50,23 @@ parser.add_argument('-c', '--cadence',
                     # action='store_true',
                     help='Observation cadence for the data.')
 
+parser.add_argument('-p', '--period',
+                    type=float,
+                    default=0,
+                    # action='store_true',
+                    help='Rotation period of the star.')
+
+parser.add_argument('-f', '--distance',
+                    type=float,
+                    default=0,
+                    # action='store_true',
+                    help='Distance of the star in pc.')
+
+parser.add_argument('-l', '--lc-dir',
+                    type=str,
+                    default=None,
+                    # action='store_true',
+                    help='Path to downloaded lightcurve.')
 # Step 3: Parse the arguments
 args = parser.parse_args()
 
@@ -59,5 +76,8 @@ DATA_dir= args.datadir
 injrec=args.injrec
 input_sector=args.sector
 input_cadence=args.cadence
+input_period = args.period
+input_distance = args.distance
+input_lc_dir = args.lc_dir
 
-tess_pipeline(args.tic, DATA_dir, rerun, injrec, input_cadence, input_sector, calc_energy=calc_energy)
+tess_pipeline(args.tic, DATA_dir, rerun, injrec, input_cadence, input_sector, calc_energy=calc_energy, period=input_period, distance=input_distance, lc_dir=input_lc_dir)

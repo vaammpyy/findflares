@@ -8,7 +8,7 @@ from astropy import units as u
 from findflares.lc_class import *
 from findflares.imports import *
 
-def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0, calc_energy=True):
+def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0, calc_energy=True, period=None, distance=None, lc_dir=None):
     """
     Runs pipeline for TESS Lightcurves.
 
@@ -32,6 +32,12 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
         pipeline runs over all avialable sectors.
     calc_energy : bool, optional
         If true then calculated energy of the flares, by default true.
+    lc_dir : str, optional
+        Directory storing the downloaded lightcurves.
+    period : float, optional
+        Rotation period of the star if known.
+    distance : float, optional 
+        Distance to the star if known, in parsecs. If not known then pipeline will attempt to fetch the distance.
     
     Output
     -------
@@ -64,7 +70,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                     lc=TESSLC(tic, data_dir+"/"+str(TIC))
                     # lc.download_lc(sector=sector, cadence=cad, segment=True, clean=True)
                     try:
-                        lc.download_lc(sector=sector, cadence=cad, clean=True)
+                        lc.download_lc(sector=sector, cadence=cad, clean=True, lc_dir=lc_dir)
                     except HTTPError:
                         error="HTTPError"
                         print("Download failed. Downloading next sector.")
@@ -73,14 +79,21 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         error="ConnectionError"
                         print("ConnectionError, failed to connect to the server.")
                         continue
-                    lc.detrend()
+                    lc.star.dist=distance*u.pc
+                    if period:
+                        lc.detrend(period=period)
+                    else:
+                        lc.detrend()
                     lc.findflares()
                     lc.flare_energy(calc_energy=calc_energy)
                     if injrec:
                         print("Injection recovery test started.")
                         irec=InjRec(lc)
                         for k in range(injrec):
-                            irec.run_injection_recovery(run=k+1, plot=False)
+                            if period:
+                                irec.run_injection_recovery(run=k+1, plot=False, period=period)
+                            else:
+                                irec.run_injection_recovery(run=k+1, plot=False)
                         print("Injection recovery test completed.")
                         plot_ir_results(irec, mode='rec_frac', save_fig=True)
                         plot_ir_results(irec, mode='rec_frac_sa_ampl', save_fig=True)
