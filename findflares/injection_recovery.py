@@ -46,7 +46,7 @@ def log_injection_recovery(obj, rec_index=None, inj_index=None, flag="-1.-1.-1")
                         "i_start":rec_dict['i_start'][rec_index],
                         "i_stop":rec_dict["i_stop"][rec_index],
                         "amplitude":rec_dict['amplitude'][rec_index],
-                        "duration":rec_dict["amplitude"][rec_index],
+                        "duration":rec_dict["duration"][rec_index],
                         "equi_duration":rec_dict['equi_duration'][rec_index],
                         "energy":rec_dict['energy'][rec_index],
                         "spot_amplitude":rec_dict["spot_amplitude"][rec_index]},
