@@ -1,7 +1,7 @@
 import multiprocessing as mp
 from datetime import datetime
 from contextlib import redirect_stdout
-from time import time
+import time
 import sys
 from astropy import units as u
 
@@ -79,9 +79,13 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         error="ConnectionError"
                         print("ConnectionError, failed to connect to the server.")
                         continue
-                    lc.star.dist=distance*u.pc
+                    if distance:
+                        lc.star.dist=distance*u.pc
+                    else:
+                        lc.star.dist=distance
                     if period:
                         lc.detrend(period=period)
+                        lc.star.prot_cat = period
                     else:
                         lc.detrend()
                     lc.findflares()
@@ -91,23 +95,23 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         irec=InjRec(lc)
                         for k in range(injrec):
                             if period:
-                                irec.run_injection_recovery(run=k+1, plot=False, period=period)
+                                irec.run_injection_recovery(run=k+1, plot=True, period=period)
                             else:
-                                irec.run_injection_recovery(run=k+1, plot=False)
+                                irec.run_injection_recovery(run=k+1, plot=True)
                         print("Injection recovery test completed.")
-                        plot_ir_results(irec, mode='rec_frac', save_fig=True)
-                        plot_ir_results(irec, mode='rec_frac_sa_ampl', save_fig=True)
-                        plot_ir_results(irec, mode='rec_frac_sa_fwhm', save_fig=True)
-                        if irec.star.dist is not None:
-                            plot_ir_results(irec, mode='erg_comp', save_fig=True)
-                            plot_ir_results(irec, mode='fp', save_fig=True)
-                            plot_ir_results(irec, mode='rec_frac_erg', save_fig=True)
-                        else:
-                            print("PIPELINE::COMMENT::Distance not found skipping energy plots.")
-                        plot_ir_results(irec, mode='rec_frac_spot_amplitude', save_fig=True)
-                        plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
-                        plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
-                        plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
+                        # plot_ir_results(irec, mode='rec_frac', save_fig=True)
+                        # plot_ir_results(irec, mode='rec_frac_sa_ampl', save_fig=True)
+                        # plot_ir_results(irec, mode='rec_frac_sa_fwhm', save_fig=True)
+                        # if irec.star.dist is not None:
+                        #     plot_ir_results(irec, mode='erg_comp', save_fig=True)
+                        #     plot_ir_results(irec, mode='fp', save_fig=True)
+                        #     plot_ir_results(irec, mode='rec_frac_erg', save_fig=True)
+                        # else:
+                        #     print("PIPELINE::COMMENT::Distance not found skipping energy plots.")
+                        # plot_ir_results(irec, mode='rec_frac_spot_amplitude', save_fig=True)
+                        # plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
+                        # plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
+                        # plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
                         # irec.pickleObj()
                     else:
                         lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
@@ -235,14 +239,14 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
-                        # irec.pickleObj()
+                        irec.pickleObj()
                         failed = False
                     else:
                         lc.plot(mode="detrended", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_model_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="model_overlay", save_fig=True)
-                        # lc.pickleObj()
+                        lc.pickleObj()
                         failed=False
         else:
             print("No data found!")
@@ -287,7 +291,7 @@ def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, proces
         Index of the process initiated to avoid overwriting of output files
     """
     process_id=mp.current_process().pid
-    ID, sector, cad=candidate
+    ID, sector, period, distance, cadence=candidate
 
     output_file = os.path.join(output_dir, f"{process_id}_{process_index}.out")
 
@@ -306,9 +310,9 @@ def spawn_pipeline_process(candidate, data_dir, redo, injrec, output_dir, proces
     with open(output_file, 'w') as f:
         with redirect_stdout(f):
             print(f"PID:{process_id}_{process_index}\nCANDIDATE:{candidate}\nREDO:{redo}\nINJREC:{injrec}\n")
-            t_start=time()
-            tess_pipeline(ID, data_dir, redo, injrec, cad, sector)
-            t_stop=time()
+            t_start=time.time()
+            tess_pipeline(ID, data_dir, redo, injrec, input_cadence=cadence, input_sector=sector, period=period, distance=distance)
+            t_stop=time.time()
             print(f"TIME:{t_stop-t_start:.2f}")
 
 def run_pipeline_py(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1, redo=True, injrec=0):
@@ -337,14 +341,23 @@ def run_pipeline_py(candidate_file, telescope, data_dir, output_dir, CPU_CORES=1
     candidate_arr=[]
     with open(candidate_file, 'r') as file:
         for line in file:
+            cleaned_line = line.strip()
             try:
-                ID, sector, cad=line.split(',')
-                candidate_arr.append((int(ID), int(sector), int(cad)))
+                ID, sector, period, distance,cadence=cleaned_line.split(',')
+                # print(int(ID))
+                # print(int(sector))
+                # print(float(period))
+                # print(float(distance))
+                # print(int(cadence))
+                candidate_arr.append((int(ID), int(sector), float(period), float(distance), int(cadence)))
             except ValueError:
-                ID=line
+                ID=cleaned_line
                 sector=0
-                cad=0
-                candidate_arr.append((int(ID), int(sector), int(cad)))
+                cadence=0
+                distance = 0
+                period = 0
+                candidate_arr.append((int(ID), int(sector), float(period), float(distance), int(cadence)))
+                # candidate_arr.append((int(ID), int(sector), float(period), float(distance), int(cadence)))
     
     time = datetime.now().strftime("%H%M_%d%m%Y")
     job_id=f"job_{time}"

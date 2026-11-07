@@ -1,6 +1,7 @@
 import copy
 import numpy as np
 import fnmatch
+import time as timelib
 
 from .imports import *
 from .flares_utils import _spot_amplitude
@@ -260,7 +261,7 @@ def recover_flares(obj, run):
     injected_t_peak = [injected[i]["t_peak"] for i in range(len(injected))]
     injected_sa = [injected[i]["spot_amplitude"] for i in range(len(injected))]
 
-    fname = f"{obj.dir}/ir_runs/{run:05d}.png"
+    fname = f"{obj.dir}/ir_runs/{run:05d}_{timelib.ctime()}.png"
     fig, ax = plt.subplots(1,1, sharex=True, figsize=(20,10))
 
     time = obj.lc.model["time"]
@@ -269,6 +270,7 @@ def recover_flares(obj, run):
 
     ax.scatter(time, raw_flux, s=0.5, color = 'black')
     ax.plot(time, model_flux, color='magenta')
+    ax.set_title(f"TIC{obj.TIC} Prot={np.mean(obj.star.prot_GP)} Tmag={obj.star.tess_mag} N_Inj={len(injected_t_peak)}, N_Det={len(recovered_t_peak)}")
     # ax[0].axvline(injected_t_peak, 0.5*min(model_flux), 1.5*max(model_flux), color='blue')
 
 

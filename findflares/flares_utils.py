@@ -705,11 +705,11 @@ def add_flares(obj, N=10):
         # I have constraint on the flare amplitude from Gunther et al 2020, don't need to check
         # if the flare is too small or not.
         try:
-            mask=np.where(flares_lc>=0.01)[0]
+            mask=np.where(flares_lc>=0.001)[0]
             start=mask[0]
             stop=mask[-1]
         except:
-            print("Flare too small.")
+            print(f"Flare too small. Flare amplitude {max(flares_lc)}")
             arg=np.where(time == arr_time_peak[i])[0][0]
             start=arg-1
             stop=arg+1

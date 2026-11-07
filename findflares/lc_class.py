@@ -105,6 +105,20 @@ class TESSLC:
         ----------
         fName : int
             TICID of the star.
+        
+        Attributes
+        ----------
+        dir : str
+            Directory to store the pickle file.
+        TIC : int
+            TIC ID of the star.
+        flares : dictionary
+            Storing the parameters of all the flares
+        calflag : str
+            Calibration flag code for the star. Structure of the calibration
+            "Tmag.Period"; Tmag: [(7,12): VB {Very Bright}, (12,13): B {Bright}, (13,16): D {Dim}]
+                            Period: [(0,0.3): UF {Ultra Fast}, (0.3, 7): F {Fast}, (7,30): S (Slow)]
+            
         """
         self.dir=data_dir
         self.TIC=fName
@@ -118,6 +132,7 @@ class TESSLC:
                      "equi_duration":[],
                      "energy":[],
                      "spot_amplitude":[]}
+        self.calflag=None
 
         try:
             os.mkdir(self.dir)
@@ -193,6 +208,10 @@ class TESSLC:
                 Period of rotation of the star, as calculated by
                 GP model, None if star is not rotating.
                 Each entry represent the GP period of each segment.
+            prot_cat : float
+                Rotation period of the star found by other studies
+                if given it'll be used as a prior and can be used to
+                check if period is robust or not.
             dist : float
                 Distance of the star cross-matched with GAIA DR3.
             flux_norm : float
@@ -205,6 +224,7 @@ class TESSLC:
             self.tess_mag=None
             self.prot=None
             self.prot_GP=[]
+            self.prot_cat = None
             self.dist=None
             self.flux_norm = None
         
@@ -277,14 +297,14 @@ class TESSLC:
         lc_dir : str, optional
             If true will load up the lightcurve from the directory.
         """
-        download_time_start=time()
+        download_time_start=time.time()
         print("STEP::DOWNLOAD::START", flush=True)
         if cadence == None:
             get_lightcurve(self, sector=sector, mission=mission, author=author, lc_dir=lc_dir)
         else: 
             get_lightcurve(self, cadence=cadence, sector=sector, mission=mission, author=author, lc_dir=lc_dir)
         print("STEP::DOWNLOAD::END", flush=True)
-        download_time_stop=time()
+        download_time_stop=time.time()
         print(f"PIPELINE::DWNLDTIME::{download_time_stop-download_time_start:.2f}", flush=True)
         if clean:
             print("STEP::CLEANING::START", flush=True)
@@ -387,6 +407,7 @@ class TESSLC:
             print("Segmentation started.")
             self.segment_lc()
             print("Segmentation completed.")
+            # GaussianProcess_detrend(self, mask_flare=True, mask_transit=mask_transit, mask_outlier=True, iter=iter_detrend, period=period)
             GaussianProcess_detrend(self, mask_flare=True, mask_transit=mask_transit, mask_outlier=True, iter=iter_detrend, period=period)
         else:
             print("Rotation not found.")
@@ -396,18 +417,45 @@ class TESSLC:
             #     Median_detrend(self, mask_flare=False, mask_transit=False)
         print("STEP::DETREND:END", flush=True)
         # Check the stability of the rotation period.
-        mean = np.mean(self.star.prot_GP)
-        std = np.std(self.star.prot_GP)
-        tolerance = std/mean
+        mean_period = np.mean([row[-1] for row in self.star.prot_GP])
+        std = np.std([row[-1] for row in self.star.prot_GP])
+        tolerance = std/mean_period
         max_tolerance = 0.05
+
+        Tmag_code=''
+        Period_code=''
+
+        if self.star.tess_mag<12:
+            Tmag_code='VB'
+        if self.star.tess_mag>12 and self.star.tess_mag<13:
+            Tmag_code = "B"
+        if self.star.tess_mag>13:
+            Tmag_code = "D"
+        
+        try:
+            if mean_period < 0.3:
+                Period_code = "UF"
+            if mean_period > 0.3 and mean_period < 7:
+                Period_code = "F"
+            if mean_period > 7:
+                Period_code = "S"
+        except:
+            Period_code = "S"
+        self.calflag = f"{Tmag_code}.{Period_code}"
+        print(f"STEP::STAR:CALFLAG:{self.calflag}")
+        
+        print(f"META::ROTPERIOD_TOL:{tolerance}")
+        print(f"META::ROTPERIOD_GP::{self.star.prot_GP}")
         if tolerance < max_tolerance:
-            self.star.prot_GP=mean
+            self.star.prot_GP=mean_period
             print(f"META::ROTPERIOD::{self.star.prot_GP}")
+            # print(f"META::ROTPERIOD_TOL:{tolerance}")
             self.quality = "good"
         else:
             print(f"PIPELINE::COMMENT::Rotation period is not robust.")
+            # print(f"META::ROTPERIOD_TOL:{tolerance}")
             self.quality = "bad"
-            self.star.prot_GP = mean
+            self.star.prot_GP = mean_period
         print(f"PIPELINE::COMMENT::ROTQUAL={self.quality}")
         # write the GLS module for detrending check.
     
@@ -667,23 +715,24 @@ class InjRec(TESSLC):
         """
         Pickles InjRec object.
 
-        Pickles InjRec object and stores it in data_dir/TICID/ir_sector_cadence.pkl (data_dir defined in defaults).
+        Pickles InjRec object and stores it in data_dir/TICID/ir_sector_cadence_<time of the ir run>.pkl (data_dir defined in defaults).
         """
+        tme = time.ctime()
         if failed:
             if self.inst.sector is None or self.inst.cadence is None:
-                fObj = open(f"{self.dir}/failed_ir_sector_cadence.pkl", 'wb')
+                fObj = open(f"{self.dir}/failed_ir_sector_cadence_{tme}.pkl", 'wb')
             else:
-                fObj = open(f"{self.dir}/failed_ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+                fObj = open(f"{self.dir}/failed_ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}_{tme}.pkl", 'wb')
         else:
             if self.inst.sector is None or self.inst.cadence is None:
-                fObj = open(f"{self.dir}/ir_sector_cadence.pkl", 'wb')
+                fObj = open(f"{self.dir}/ir_sector_cadence_{tme}.pkl", 'wb')
             else:
-                fObj = open(f"{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl", 'wb')
+                fObj = open(f"{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}_{tme}.pkl", 'wb')
 
         pickle.dump(self, fObj)
         fObj.close() 
         print("Pickled successfully.")
         if self.inst.sector is None or self.inst.cadence is None:
-            print(f"PATH::{self.dir}/ir_sector_cadence.pkl")
+            print(f"PATH::{self.dir}/ir_sector_cadence_{tme}.pkl")
         else:
-            print(f"PATH::{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}.pkl")
+            print(f"PATH::{self.dir}/ir_{self.inst.sector}_{int(self.inst.cadence*24*3600)}_{tme}.pkl")

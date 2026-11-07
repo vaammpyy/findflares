@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pdb
+import time
 
 from .gls import *
 
@@ -98,7 +99,7 @@ def get_period(obj, mask, ret_pow=False, ret_FAP=False, detrended=False):
     flux_err=data['flux_err'][mask]
     # result=xo.lomb_scargle_estimator(time, flux, yerr=flux_err, max_peaks=1, min_period=0.01, max_period=200.0, samples_per_peak=50)
     # gls=Gls(((time, flux, flux_err)), fend=2, fbeg=2/((time[-1]-time[0])*24))
-    gls=Gls(((time, flux, flux_err)), fend=24, fbeg=1/14)
+    gls=Gls(((time, flux, flux_err)), fend=5.5, fbeg=1/30)
     # gls=Gls(((time, flux, flux_err)), Pend=100, Pbeg=0.01/24)
     period=gls.best['P']
     power=gls.best['amp']
@@ -364,7 +365,8 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
 
 
     if injrec:
-        fName=f"ir_{injrec_run:02d}_{fName}"
+        tme = time.ctime()
+        fName=f"ir_{injrec_run:02d}_{tme}_{fName}"
 
     plt.xlabel("Time [mjd - 2,457,000]", fontsize=18)
     plt.ylabel("Flux [e/s]", fontsize=18)

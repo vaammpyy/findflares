@@ -1,8 +1,7 @@
 **/__pycache__
 defaults.py
 **/findflares.egg-info
-./tests/output/*
-!./tests/output/.gitkeep
+**/tests/*
 **/build/*
 generate_slurm_file.py
 run_pipeline.slurm
