@@ -249,11 +249,11 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 lw=[1,3,2]
                 size=[35,20,10]
                 # plt.plot(time, map_soln['pred'], color='magenta')
-                plt.plot(time, map_soln['pred'], color=col[i-1], linestyle=ls[i-1], linewidth=lw[i-1])
-                plt.scatter(obj.lc.full['time'][~(comb_period_model_mask & comb_model_mask)], obj.lc.full['flux'][~(comb_period_model_mask & comb_model_mask)], color=col[i-1], s=size[i-1])
-                plt.scatter(obj.lc.full['time'][comb_period_model_mask & comb_model_mask], obj.lc.full['flux'][comb_period_model_mask & comb_model_mask], color='k', s=0.01)
-                plt.xlim(time[0],time[-1])
-                plt.ylim(min(obj.lc.full['flux'][~(comb_period_model_mask & comb_model_mask)]), max(obj.lc.full['flux'][~(comb_period_model_mask & comb_model_mask)]))
+                # plt.plot(time, map_soln['pred'], color=col[i-1], linestyle=ls[i-1], linewidth=lw[i-1])
+                # plt.scatter(obj.lc.full['time'][~(comb_period_model_mask & comb_model_mask)], obj.lc.full['flux'][~(comb_period_model_mask & comb_model_mask)], color=col[i-1], s=size[i-1])
+                # plt.scatter(obj.lc.full['time'][comb_period_model_mask & comb_model_mask], obj.lc.full['flux'][comb_period_model_mask & comb_model_mask], color='k', s=0.01)
+                # plt.xlim(time[0],time[-1])
+                # plt.ylim(min(obj.lc.full['flux'][~(comb_period_model_mask & comb_model_mask)]), max(obj.lc.full['flux'][~(comb_period_model_mask & comb_model_mask)]))
                 # plt.savefig(f"./output/{obj.TIC}/{obj.inst.sector}_SEG{seg}_ITER{i}.png")
                 # print(f"PIPELINE::DIAGNOSTICPLOT::SAVED::SEG{seg}::ITER{i}")
                 # plt.close()
@@ -326,9 +326,9 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 # plt.close()
                 i+=1
 
-            plt.savefig(f"./output/{obj.TIC}/{obj.inst.sector}_SEG{seg}_ITERALL_{ctime()}.png")
-            print(f"PIPELINE::DIAGNOSTICPLOT::SAVED::SEG{seg}::ITERALL")
-            plt.close()
+            # plt.savefig(f"./output/{obj.TIC}/{obj.inst.sector}_SEG{seg}_ITERALL_{ctime()}.png")
+            # print(f"PIPELINE::DIAGNOSTICPLOT::SAVED::SEG{seg}::ITERALL")
+            # plt.close()
 
             lc_detrended['time']= np.append(lc_detrended['time'],obj.lc.full['time'][eval_mask])
             lc_detrended['flux']= np.append(lc_detrended['flux'],obj.lc.full['flux'][eval_mask]-map_soln['pred'])
