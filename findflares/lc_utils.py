@@ -365,7 +365,7 @@ def plot_lightcurve(obj, mode=None, q_flags=None, segments=None, show_flares=Fal
 
 
     if injrec:
-        tme = time.ctime()
+        tme = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         fName=f"ir_{injrec_run:02d}_{tme}_{fName}"
 
     plt.xlabel("Time [mjd - 2,457,000]", fontsize=18)

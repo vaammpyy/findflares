@@ -4,6 +4,37 @@ import numpy as np
 
 from .lc_class import *
 
+def check_run_status(pkl_path, injection_recovery=False):
+    """
+    This module checks the run status of the pipeline.
+
+    This module checks the run status of the pipeline by reading in the pickle file
+    and checking for the attribute lc.pipeline_result.run_status.
+
+    Parameters
+    ----------
+    pkl_path : str
+        Path to the pickle file.
+    injection_recovery : bool, optional
+        If True, checks the run status of the injection recovery test. Default is False.
+    
+    Returns
+    -------
+    run_status : bool
+        True if the run was successful, False otherwise.
+    """
+    lc = loadpickle_path(pkl_path)
+    if injection_recovery:
+        if lc.pipeline_result.ir_run_status == "SUCCESS":
+            return True
+        else:
+            return False
+    else:
+        if lc.pipeline_result.run_status == "SUCCESS":
+            return True
+        else:
+            return False
+
 def _return_run_summary(file_path):
     """
     This module reads the output file and returns the run status.

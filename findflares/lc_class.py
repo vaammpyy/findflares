@@ -142,6 +142,7 @@ class TESSLC:
         self.lc=self.LC()
         self.star=self.STAR()
         self.inst=self.INST()
+        self.pipeline_result=self.PIPELINE_RESULT()
 
     class LC:
         """
@@ -259,6 +260,12 @@ class TESSLC:
 
             Attributes
             ----------
+            run_status : str
+                "SUCCESS": Successful run.
+                "FAILED": Unsuccessful run.
+            ir_run_status : str
+                "SUCCESS": Successful injection recovery run.
+                "FAILED": Unsuccessful injection recovery run.
             qualitty : str
                 "good": Successful run. Flare finding and detrending should be fine. By eye check not required.
                 "check": Successful run. By eye check required.
@@ -271,6 +278,8 @@ class TESSLC:
             hostname : str
                 Stores the hostname of the device analysis was run on.
             """
+            self.run_status = "FAILED"
+            self.ir_run_status = "FAILED"
             self.quality = None
             self.manually_checked = False
             self.notes = None
@@ -717,7 +726,7 @@ class InjRec(TESSLC):
 
         Pickles InjRec object and stores it in data_dir/TICID/ir_sector_cadence_<time of the ir run>.pkl (data_dir defined in defaults).
         """
-        tme = time.ctime()
+        tme = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         if failed:
             if self.inst.sector is None or self.inst.cadence is None:
                 fObj = open(f"{self.dir}/failed_ir_sector_cadence_{tme}.pkl", 'wb')

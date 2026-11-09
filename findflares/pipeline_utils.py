@@ -98,6 +98,8 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                                 irec.run_injection_recovery(run=k+1, plot=True, period=period)
                             else:
                                 irec.run_injection_recovery(run=k+1, plot=True)
+                        irec.pipeline_result.run_status = "SUCCESS"
+                        irec.pipeline_result.ir_run_status = "SUCCESS"
                         print("Injection recovery test completed.")
                         # plot_ir_results(irec, mode='rec_frac', save_fig=True)
                         # plot_ir_results(irec, mode='rec_frac_sa_ampl', save_fig=True)
@@ -118,6 +120,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_model_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="model_overlay", save_fig=True)
+                        lc.pipeline_result.run_status = "SUCCESS"
                         # lc.pickleObj()
         else:
             print("No data found!")
@@ -239,6 +242,7 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='inj_spot_amplitude', save_fig=True)
                         plot_ir_results(irec, mode='rec_frac_spot_amplitude_binned', save_fig=True)
+                        irec.pipeline_result.ir_run_status = "SUCCESS"
                         irec.pickleObj()
                         failed = False
                     else:
@@ -246,6 +250,7 @@ def tess_pipeline_mpi(tic, data_dir, lc_dir=None, redo=True, injrec=0, cadence=0
                         lc.plot(mode="flare_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="flare_model_overlay", show_flares=True, show_transits=True, save_fig=True)
                         lc.plot(mode="model_overlay", save_fig=True)
+                        lc.pipeline_result.run_status = "SUCCESS"
                         lc.pickleObj()
                         failed=False
         else:
