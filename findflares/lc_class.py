@@ -431,15 +431,23 @@ class TESSLC:
         tolerance = std/mean_period
         max_tolerance = 0.05
 
-        Tmag_code=''
+        # Tmag_code=''
+        fluxerr_code=''
         Period_code=''
 
-        if self.star.tess_mag<12:
-            Tmag_code='VB'
-        if self.star.tess_mag>12 and self.star.tess_mag<13:
-            Tmag_code = "B"
-        if self.star.tess_mag>13:
-            Tmag_code = "D"
+        # if self.star.tess_mag<12:
+        #     Tmag_code='VB'
+        # if self.star.tess_mag>12 and self.star.tess_mag<13:
+        #     Tmag_code = "B"
+        # if self.star.tess_mag>13:
+        #     Tmag_code = "D"
+
+        fluxerr = np.nanmedian(self.lc.full['flux_err'])
+
+        if fluxerr<=7.5:
+            fluxerr_code = 'L'
+        elif 7.5<fluxerr:
+            fluxerr_code = 'H'
         
         try:
             if mean_period < 0.3:
@@ -450,7 +458,8 @@ class TESSLC:
                 Period_code = "S"
         except:
             Period_code = "S"
-        self.calflag = f"{Tmag_code}.{Period_code}"
+        # self.calflag = f"{Tmag_code}.{Period_code}"
+        self.calflag = f"{fluxerr_code}.{Period_code}"
         print(f"STEP::STAR:CALFLAG:{self.calflag}")
         
         print(f"META::ROTPERIOD_TOL:{tolerance}")

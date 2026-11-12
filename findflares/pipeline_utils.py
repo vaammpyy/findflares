@@ -4,9 +4,48 @@ from contextlib import redirect_stdout
 import time
 import sys
 from astropy import units as u
+import gc
 
 from findflares.lc_class import *
 from findflares.imports import *
+
+def _check_rerun_required(file_path, injection_recovery=False, redo=False):
+    """
+    This function checks if a rerun is required or not based on the
+    existence of the file at given file and the lc.pipeline_result.run_status
+    variable and the lc.pipeline_result.run_status variable.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the pkl file.
+    injection_recovery : bool
+        If the run is an injection_recovery run.
+    
+    Returns
+    -------
+    rerun_required : bool
+        True if rerun is required, False if the run was succesful.
+    """
+    rerun_required = True
+    if redo == True:
+        print(f"PIPELINE::RERUN::{rerun_required}::Redo was True")
+        return rerun_required
+    if os.path.isfile(file_path):
+        try:
+            if check_run_status(file_path, injection_recovery=injection_recovery):
+                rerun_required = False
+                print(f"PIPELINE::RERUN::{rerun_required}::File exists and the run was a SUCCESS")
+            else:
+                rerun_required = True
+                print(f"PIPELINE::RERUN::{rerun_required}::File exists and the run was a FALIURE")
+        except:
+            rerun_required = True
+            print(f"PIPLEINE:RERUN::{rerun_required}::File corrupted")
+    else:
+        rerun_required = True
+        print(f"PIPELINE::RERUN::{rerun_required}::File does not exist")
+    return rerun_required
 
 def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0, calc_energy=True, period=None, distance=None, lc_dir=None):
     """
@@ -48,7 +87,8 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
     print("STATUS::STARTED")
     print("###################")
     print(f"META::TIC={tic}", flush=True)
-    cad_list=[20, 120]
+    # cad_list=[20, 120]
+    cad_list = [120]
     print(f"Searching for observations with CADENCE: {cad_list}")
     error=None
     try:
@@ -60,9 +100,14 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
             for result in search_result:
                 TIC, sector, cad = result
                 # checking if the pipeline has already run or not
-                if os.path.isfile(f"{data_dir}/{TIC}/{sector}_{cad}.pkl") and redo==False and not injrec:
+                # if os.path.isfile(f"{data_dir}/{TIC}/{sector}_{cad}.pkl") and redo==False and not injrec:
+                #     print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}", flush=True)
+                #     print("Already exists.")
+                FILE_PATH = f"{data_dir}/{TIC}/{sector}_{cad}.pkl"
+                if not _check_rerun_required(file_path=FILE_PATH, injection_recovery=bool(injrec), redo=redo):
                     print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}", flush=True)
-                    print("Already exists.")
+                    print("****************")
+                    print("STATUS::SUCCESS!", flush=True)
                 else:
                     print(f"META::SECTOR={sector}\nMETA::CADENCE={cad}", flush=True)
                     # pipeline(TIC, sector, cad)
@@ -122,6 +167,7 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
                         lc.plot(mode="model_overlay", save_fig=True)
                         lc.pipeline_result.run_status = "SUCCESS"
                         # lc.pickleObj()
+                gc.collect()
         else:
             print("No data found!")
     except HTTPError:

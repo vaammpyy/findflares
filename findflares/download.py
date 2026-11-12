@@ -1,6 +1,7 @@
 import lightkurve as lk
 import numpy as np
 import pandas as pd
+import gc
 
 def search_lightcurve(tic, cadence=20, mission="TESS", author="SPOC", ret_list=False):
     """
@@ -152,3 +153,6 @@ def get_lightcurve(obj, cadence=None, sector=None, mission="TESS", author='SPOC'
         obj.inst.telescope=lc.meta["TELESCOP"]
         obj.inst.instrument=lc.meta["INSTRUME"]
         obj.inst.cadence_err=lc.meta["TIERRELA"]
+
+        del lc
+        gc.collect()
