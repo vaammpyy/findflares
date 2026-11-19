@@ -178,9 +178,15 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
         print("ConnectionError, failed to connect to the server.")
     finally:
         if injrec:
-            irec.pickleObj()
+            if not _check_rerun_required(file_path=FILE_PATH, injection_recovery=bool(injrec), redo=redo):
+                pass
+            else:
+                irec.pickleObj()
         else:
-            lc.pickleObj()
+            if not _check_rerun_required(file_path=FILE_PATH, injection_recovery=bool(injrec), redo=redo):
+                pass
+            else:
+                lc.pickleObj()
         if sys.exc_info()[0] is None and error is None:
             print("****************")
             print("STATUS::SUCCESS!", flush=True)
