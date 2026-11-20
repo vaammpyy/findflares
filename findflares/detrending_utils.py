@@ -210,7 +210,7 @@ def GaussianProcess_detrend(obj, segments=None, mask_flare=False, mask_transit=F
                 
                 if mask_outlier:
                     flux=obj.lc.full['flux']
-                    mean=np.mean(flux)
+                    mean=np.nanmean(flux[model_mask])
                     std=np.std(flux[model_mask])
                     mad=MAD(flux)
                     flux_dev=abs(flux-mean)
