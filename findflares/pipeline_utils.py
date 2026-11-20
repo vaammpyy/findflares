@@ -9,7 +9,7 @@ import gc
 from findflares.lc_class import *
 from findflares.imports import *
 
-def _check_rerun_required(file_path, injection_recovery=False, redo=False):
+def _check_rerun_required(file_path, injection_recovery=False, redo=False, VERBOSE=True):
     """
     This function checks if a rerun is required or not based on the
     existence of the file at given file and the lc.pipeline_result.run_status
@@ -19,8 +19,12 @@ def _check_rerun_required(file_path, injection_recovery=False, redo=False):
     ----------
     file_path : str
         Path to the pkl file.
-    injection_recovery : bool
+    injection_recovery : bool, optional
         If the run is an injection_recovery run.
+    redo : bool, optional
+        If True the redoes the file.
+    VERBOSE : bool, optional
+        If True then prints the statement.
     
     Returns
     -------
@@ -29,22 +33,22 @@ def _check_rerun_required(file_path, injection_recovery=False, redo=False):
     """
     rerun_required = True
     if redo == True:
-        print(f"PIPELINE::RERUN::{rerun_required}::Redo was True")
+        if VERBOSE: print(f"PIPELINE::RERUN::{rerun_required}::Redo was True")
         return rerun_required
     if os.path.isfile(file_path):
         try:
             if check_run_status(file_path, injection_recovery=injection_recovery):
                 rerun_required = False
-                print(f"PIPELINE::RERUN::{rerun_required}::File exists and the run was a SUCCESS")
+                if VERBOSE: print(f"PIPELINE::RERUN::{rerun_required}::File exists and the run was a SUCCESS")
             else:
                 rerun_required = True
-                print(f"PIPELINE::RERUN::{rerun_required}::File exists and the run was a FALIURE")
+                if VERBOSE: print(f"PIPELINE::RERUN::{rerun_required}::File exists and the run was a FALIURE")
         except:
             rerun_required = True
-            print(f"PIPLEINE:RERUN::{rerun_required}::File corrupted")
+            if VERBOSE: print(f"PIPLEINE:RERUN::{rerun_required}::File corrupted")
     else:
         rerun_required = True
-        print(f"PIPELINE::RERUN::{rerun_required}::File does not exist")
+        if VERBOSE: print(f"PIPELINE::RERUN::{rerun_required}::File does not exist")
     return rerun_required
 
 def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sector=0, calc_energy=True, period=None, distance=None, lc_dir=None):
@@ -178,12 +182,12 @@ def tess_pipeline(tic, data_dir, redo=True, injrec=0, input_cadence=0, input_sec
         print("ConnectionError, failed to connect to the server.")
     finally:
         if injrec:
-            if not _check_rerun_required(file_path=FILE_PATH, injection_recovery=bool(injrec), redo=redo):
+            if not _check_rerun_required(file_path=FILE_PATH, injection_recovery=bool(injrec), redo=redo, VERBOSE=False):
                 pass
             else:
                 irec.pickleObj()
         else:
-            if not _check_rerun_required(file_path=FILE_PATH, injection_recovery=bool(injrec), redo=redo):
+            if not _check_rerun_required(file_path=FILE_PATH, injection_recovery=bool(injrec), redo=redo, VERBOSE=False):
                 pass
             else:
                 lc.pickleObj()
